@@ -23,6 +23,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/categories/', include('categories.urls')),
+    path('api/courses/', include('courses.urls')),
+    path('api/core/', include('core.urls')),
+    path('api/shopping/', include('shopping.urls')),
 ]
 
 # Add this for serving media files in development
