@@ -1,0 +1,25 @@
+# Django and DRF
+Django==5.1.5
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+
+# Database
+mysqlclient==2.2.4
+
+# Image Processing
+Pillow==10.1.0
+
+# CORS headers
+django-cors-headers==4.3.1
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Production server
+gunicorn==21.2.0
+
+# For handling static files in production
+whitenoise==6.6.0
+
+# For better datetime handling
+pytz==2024.1
