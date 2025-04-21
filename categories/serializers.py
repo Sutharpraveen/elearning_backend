@@ -88,3 +88,24 @@ class CategoryDetailSerializer(BaseCategorySerializer):
 
     def get_total_instructors(self, obj):
         return obj.courses.values('instructor').distinct().count()
+
+
+
+# Simple serializer to avoid infinite nesting
+class SimpleCategorySerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    total_courses = serializers.SerializerMethodField()  # 👈 New field
+
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'description', 'image', 'image_url', 'total_courses']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        return None
+
+    def get_total_courses(self, obj):
+        return obj.courses.count()  # assumes related_name='courses' in Course model
+
