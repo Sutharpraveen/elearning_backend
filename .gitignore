@@ -1,50 +1,105 @@
-# Byte‑compiled / optimized files
+# =========================
+# Python byte‑compiled files
+# =========================
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Django database files
-*.sqlite3
+# =========================
+# Distribution / packaging
+# =========================
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
 
+# =========================
+# Django files
+# =========================
+*.sqlite3
+db.sqlite3
+local_settings.py
+
+# =========================
 # Logs
+# =========================
 *.log
 
-# Environment files
+# =========================
+# Media files (uploads)
+# =========================
+media/
+media/**
+
+# =========================
+# Static files collected
+# =========================
+staticfiles/
+staticfiles/**
+
+# =========================
+# Environment / virtualenv
+# =========================
 .env
 .env.*
-
-# Virtual environments
 venv/
 .venv/
 env/
+ENV/
+env.bak/
 
-# Static/media (if you collect or upload)
-staticfiles/
-media/
-
-# IDE/editor files
+# =========================
+# Editor / IDE
+# =========================
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
 
+# =========================
 # macOS
+# =========================
 .DS_Store
 
-# node (if any front‑end)
+# =========================
+# Node / Front‑end
+# =========================
 node_modules/
 npm-debug.log*
 yarn-error.log*
 
-# pytest
+# =========================
+# Testing / Coverage
+# =========================
 .pytest_cache/
-
-# coverage
+coverage.xml
 htmlcov/
 .coverage
 
-# Media files
-media/
+# =========================
+# Server‑specific
+# =========================
+gunicorn.sock
+*.pid
+*.sock
+*.cache
 
-# Course files
-courses/media/
+# =========================
+# Docker (if used)
+# =========================
+docker-compose.override.yml
+
+# =========================
+# Lock files (if you use Pipenv)
+# =========================
+Pipfile.lock
