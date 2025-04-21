@@ -67,6 +67,12 @@ env.bak/
 *.sublime-workspace
 
 # =========================
+# Cursor AI editor
+# =========================
+.cursor/
+*.cursorworkspace
+
+# =========================
 # macOS
 # =========================
 .DS_Store
