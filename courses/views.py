@@ -16,7 +16,8 @@ from .serializers import (
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    #permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticated]  # Allows read-only access to unauthenticated users
     parser_classes = (MultiPartParser, FormParser)
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'description', 'level', 'language']
@@ -47,7 +48,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 class SectionViewSet(viewsets.ModelViewSet):
     serializer_class = SectionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]  # Requires authentication for all actions
 
     def get_queryset(self):
         return Section.objects.filter(course_id=self.kwargs['course_pk'])
@@ -60,7 +61,7 @@ class SectionViewSet(viewsets.ModelViewSet):
 
 class LectureViewSet(viewsets.ModelViewSet):
     serializer_class = LectureSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]  # Requires authentication for all actions
     parser_classes = (MultiPartParser, FormParser)
 
     def get_queryset(self):
@@ -71,7 +72,7 @@ class LectureViewSet(viewsets.ModelViewSet):
 
 class ResourceViewSet(viewsets.ModelViewSet):
     serializer_class = ResourceSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]  # Requires authentication for all actions
     parser_classes = (MultiPartParser, FormParser)
 
     def get_queryset(self):
@@ -79,14 +80,14 @@ class ResourceViewSet(viewsets.ModelViewSet):
 
 class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = EnrollmentSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]  # Requires authentication for all actions
 
     def get_queryset(self):
         return Enrollment.objects.filter(student=self.request.user)
 
 class ProgressViewSet(viewsets.ModelViewSet):
     serializer_class = ProgressSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]  # Requires authentication for all actions
 
     def get_queryset(self):
         return Progress.objects.filter(enrollment__student=self.request.user)

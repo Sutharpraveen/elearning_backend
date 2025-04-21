@@ -6,55 +6,13 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register('', CourseViewSet, basename='course')
+router.register('courses', CourseViewSet, basename='course')
+router.register('courses/(?P<course_pk>\d+)/sections', SectionViewSet, basename='course-sections')
+router.register('courses/(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures', LectureViewSet, basename='section-lectures')
+router.register('courses/(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures/(?P<lecture_pk>\d+)/resources', ResourceViewSet, basename='lecture-resources')
+router.register('enrollments', EnrollmentViewSet, basename='enrollments')
 
 urlpatterns = [
-    # Course routes
+    # Automatically generated routes by the router
     path('', include(router.urls)),
-    
-    # Section routes
-    path('<int:course_id>/sections/', SectionViewSet.as_view({
-        'get': 'list',
-        'post': 'create'
-    }), name='course-sections'),
-    path('<int:course_id>/sections/<int:pk>/', SectionViewSet.as_view({
-        'get': 'retrieve',
-        'put': 'update',
-        'patch': 'partial_update',
-        'delete': 'destroy'
-    }), name='course-section-detail'),
-    
-    # Lecture routes
-    path('<int:course_id>/sections/<int:section_id>/lectures/', LectureViewSet.as_view({
-        'get': 'list',
-        'post': 'create'
-    }), name='section-lectures'),
-    path('<int:course_id>/sections/<int:section_id>/lectures/<int:pk>/', LectureViewSet.as_view({
-        'get': 'retrieve',
-        'put': 'update',
-        'patch': 'partial_update',
-        'delete': 'destroy'
-    }), name='section-lecture-detail'),
-    
-    # Resource routes
-    path('<int:course_id>/sections/<int:section_id>/lectures/<int:lecture_id>/resources/', 
-        ResourceViewSet.as_view({
-            'get': 'list',
-            'post': 'create'
-        }), name='lecture-resources'),
-    path('<int:course_id>/sections/<int:section_id>/lectures/<int:lecture_id>/resources/<int:pk>/',
-        ResourceViewSet.as_view({
-            'get': 'retrieve',
-            'put': 'update',
-            'patch': 'partial_update',
-            'delete': 'destroy'
-        }), name='lecture-resource-detail'),
-    
-    # Enrollment routes
-    path('enrollments/', EnrollmentViewSet.as_view({
-        'get': 'list'
-    }), name='enrollments'),
-    path('enrollments/<int:pk>/', EnrollmentViewSet.as_view({
-        'get': 'retrieve'
-    }), name='enrollment-detail'),
 ]

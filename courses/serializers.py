@@ -1,16 +1,18 @@
 from rest_framework import serializers
 from .models import Course, Section, Lecture, Resource, Enrollment, Progress, Review
 from users.serializers import UserProfileSerializer
-from categories.serializers import CategorySerializer
+from categories.serializers import SimpleCategorySerializer  # updated import
 from django.db import models
+
 
 class ResourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Resource
         fields = [
-            'id', 'title', 'resource_type', 'file', 
+            'id', 'title', 'resource_type', 'file',
             'external_link', 'created_at', 'updated_at'
         ]
+
 
 class LectureSerializer(serializers.ModelSerializer):
     resources = ResourceSerializer(many=True, read_only=True)
@@ -19,8 +21,8 @@ class LectureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lecture
         fields = [
-            'id', 'title', 'description', 'video', 
-            'duration', 'duration_display', 'is_preview', 
+            'id', 'title', 'description', 'video',
+            'duration', 'duration_display', 'is_preview',
             'order', 'resources', 'created_at', 'updated_at'
         ]
 
@@ -28,6 +30,7 @@ class LectureSerializer(serializers.ModelSerializer):
         minutes = obj.duration // 60
         seconds = obj.duration % 60
         return f"{minutes}:{seconds:02d}"
+
 
 class SectionSerializer(serializers.ModelSerializer):
     lectures = LectureSerializer(many=True, read_only=True)
@@ -51,6 +54,7 @@ class SectionSerializer(serializers.ModelSerializer):
         minutes = (total_seconds % 3600) // 60
         return f"{hours}h {minutes}m"
 
+
 class ReviewSerializer(serializers.ModelSerializer):
     student = UserProfileSerializer(read_only=True)
     created_at_formatted = serializers.SerializerMethodField()
@@ -66,9 +70,10 @@ class ReviewSerializer(serializers.ModelSerializer):
     def get_created_at_formatted(self, obj):
         return obj.created_at.strftime("%B %d, %Y")
 
+
 class CourseSerializer(serializers.ModelSerializer):
     instructor = UserProfileSerializer(read_only=True)
-    category = CategorySerializer(read_only=True)
+    category = SimpleCategorySerializer(read_only=True)  # updated to prevent nested loop
     sections = SectionSerializer(many=True, read_only=True)
     reviews = ReviewSerializer(many=True, read_only=True)
     category_id = serializers.IntegerField(write_only=True)
@@ -104,8 +109,8 @@ class CourseSerializer(serializers.ModelSerializer):
 
     def get_total_duration(self, obj):
         total_seconds = sum(
-            lecture.duration 
-            for section in obj.sections.all() 
+            lecture.duration
+            for section in obj.sections.all()
             for lecture in section.lectures.all()
         )
         hours = total_seconds // 3600
@@ -113,11 +118,13 @@ class CourseSerializer(serializers.ModelSerializer):
         return f"{hours}h {minutes}m"
 
     def validate_discounted_price(self, value):
-        if value and value >= self.initial_data.get('original_price', 0):
+        original_price = float(self.initial_data.get('original_price', 0))
+        if value and value >= original_price:
             raise serializers.ValidationError(
                 "Discounted price must be less than original price"
             )
         return value
+
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     course = CourseSerializer(read_only=True)
@@ -134,19 +141,16 @@ class EnrollmentSerializer(serializers.ModelSerializer):
         read_only_fields = ['enrolled_at', 'completed_at', 'last_accessed']
 
     def get_progress_percentage(self, obj):
-        total_lectures = obj.course.sections.aggregate(
-            total=models.Sum(models.Count('lectures'))
-        )['total'] or 0
-        
+        total_lectures = sum(section.lectures.count() for section in obj.course.sections.all())
         if total_lectures == 0:
             return 0
-        
         completed_lectures = obj.progress.filter(completed=True).count()
         return round((completed_lectures / total_lectures) * 100, 1)
 
+
 class ProgressSerializer(serializers.ModelSerializer):
     lecture_title = serializers.CharField(source='lecture.title', read_only=True)
-    
+
     class Meta:
         model = Progress
         fields = [
