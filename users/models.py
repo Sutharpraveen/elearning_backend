@@ -22,6 +22,9 @@ class CustomUser(AbstractUser):
     website = models.URLField(max_length=255, blank=True, null=True)
     social_links = models.JSONField(default=dict, blank=True)
     learning_progress = models.JSONField(default=dict, blank=True)
+    first_name = models.CharField(max_length=150, blank=True, null=True)
+    last_name = models.CharField(max_length=150, blank=True, null=True)
+
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

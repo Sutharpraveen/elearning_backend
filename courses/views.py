@@ -23,6 +23,17 @@ class CourseViewSet(viewsets.ModelViewSet):
     search_fields = ['title', 'description', 'level', 'language']
     ordering_fields = ['created_at', 'title', 'original_price']
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        category_id = self.request.query_params.get('category')
+        if category_id:
+            try:
+                category_id = int(category_id)
+                queryset = queryset.filter(category_id=category_id)
+            except ValueError:
+                queryset = queryset.none()
+        return queryset
+
     def perform_create(self, serializer):
         title = serializer.validated_data['title']
         slug = slugify(title)

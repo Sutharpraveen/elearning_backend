@@ -146,3 +146,9 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
 }
+
+
+# CSRF_TRUSTED_ORIGINS = [
+#     'https://env-9018520.in1.bitss.cloud',
+# ]
+
