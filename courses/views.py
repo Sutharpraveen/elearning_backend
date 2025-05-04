@@ -23,6 +23,14 @@ class CourseViewSet(viewsets.ModelViewSet):
     search_fields = ['title', 'description', 'level', 'language']
     ordering_fields = ['created_at', 'title', 'original_price']
 
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        category_id = self.request.query_params.get('category')
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+        return queryset
+
     def perform_create(self, serializer):
         title = serializer.validated_data['title']
         slug = slugify(title)
@@ -45,6 +53,13 @@ class CourseViewSet(viewsets.ModelViewSet):
             serializer.save(student=request.user, course=course)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    # ✅ New action to get courses by category ID
+    @action(detail=False, methods=['get'], url_path='by-category/(?P<category_id>\d+)')
+    def by_category(self, request, category_id=None):
+        courses = self.queryset.filter(category_id=category_id, is_published=True)
+        serializer = self.get_serializer(courses, many=True)
+        return Response(serializer.data)
 
 class SectionViewSet(viewsets.ModelViewSet):
     serializer_class = SectionSerializer
