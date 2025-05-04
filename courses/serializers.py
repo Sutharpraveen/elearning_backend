@@ -71,10 +71,65 @@ class ReviewSerializer(serializers.ModelSerializer):
         return obj.created_at.strftime("%B %d, %Y")
 
 
+# class CourseSerializer(serializers.ModelSerializer):
+#     instructor = UserProfileSerializer(read_only=True)
+#     category = SimpleCategorySerializer(read_only=True)  # updated to prevent nested loop
+#     sections = SectionSerializer(many=True, read_only=True)
+#     reviews = ReviewSerializer(many=True, read_only=True)
+#     category_id = serializers.IntegerField(write_only=True)
+#     average_rating = serializers.SerializerMethodField()
+#     total_students = serializers.SerializerMethodField()
+#     total_lectures = serializers.SerializerMethodField()
+#     total_duration = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = Course
+#         fields = [
+#             'id', 'instructor', 'category', 'category_id',
+#             'title', 'slug', 'description', 'learning_objectives',
+#             'requirements', 'target_audience', 'level',
+#             'original_price', 'discounted_price', 'language',
+#             'duration', 'thumbnail', 'intro_video', 'is_published',
+#             'sections', 'reviews', 'average_rating', 'total_students',
+#             'total_lectures', 'total_duration', 'created_at', 'updated_at'
+#         ]
+#         read_only_fields = ['instructor', 'slug', 'created_at', 'updated_at']
+
+#     def get_average_rating(self, obj):
+#         reviews = obj.reviews.all()
+#         if not reviews:
+#             return 0
+#         return round(sum(review.rating for review in reviews) / len(reviews), 1)
+
+#     def get_total_students(self, obj):
+#         return obj.enrollments.count()
+
+#     def get_total_lectures(self, obj):
+#         return sum(section.lectures.count() for section in obj.sections.all())
+
+#     def get_total_duration(self, obj):
+#         total_seconds = sum(
+#             lecture.duration
+#             for section in obj.sections.all()
+#             for lecture in section.lectures.all()
+#         )
+#         hours = total_seconds // 3600
+#         minutes = (total_seconds % 3600) // 60
+#         return f"{hours}h {minutes}m"
+
+#     def validate_discounted_price(self, value):
+#         original_price = float(self.initial_data.get('original_price', 0))
+#         if value and value >= original_price:
+#             raise serializers.ValidationError(
+#                 "Discounted price must be less than original price"
+#             )
+#         return value
+
+
+
 class CourseSerializer(serializers.ModelSerializer):
     instructor = UserProfileSerializer(read_only=True)
     category = SimpleCategorySerializer(read_only=True)  # updated to prevent nested loop
-    sections = SectionSerializer(many=True, read_only=True)
     reviews = ReviewSerializer(many=True, read_only=True)
     category_id = serializers.IntegerField(write_only=True)
     average_rating = serializers.SerializerMethodField()
@@ -90,7 +145,7 @@ class CourseSerializer(serializers.ModelSerializer):
             'requirements', 'target_audience', 'level',
             'original_price', 'discounted_price', 'language',
             'duration', 'thumbnail', 'intro_video', 'is_published',
-            'sections', 'reviews', 'average_rating', 'total_students',
+            'reviews', 'average_rating', 'total_students',
             'total_lectures', 'total_duration', 'created_at', 'updated_at'
         ]
         read_only_fields = ['instructor', 'slug', 'created_at', 'updated_at']
