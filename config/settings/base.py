@@ -33,8 +33,10 @@ INSTALLED_APPS = [
     
     # Your apps
     'users',
-    'categories'
-
+    'categories',
+    'courses',
+    'core',
+    'shopping',
 ]
 
 MIDDLEWARE = [
