@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from courses.models import Course
 from django.utils import timezone
+from django.conf import settings
 
 User = get_user_model()
 
@@ -51,60 +52,75 @@ class Coupon(models.Model):
 
 
 class Cart(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_cart')
-    coupon_code = models.CharField(max_length=50, blank=True, null=True)
-    coupon_discount = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='cart'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Cart of {self.user.email}"
+        return f"Cart for {self.user.username}"
 
     @property
     def subtotal(self):
-        return sum(item.price_at_time_of_adding for item in self.cart_items.all())
-
-    @property
-    def discount_amount(self):
-        if self.coupon_discount > 0:
-            return (self.subtotal * self.coupon_discount) / 100
-        return 0
+        return sum(item.price_at_time_of_adding for item in self.items.all())
 
     @property
     def total_price(self):
         return self.subtotal - self.discount_amount
 
     @property
+    def discount_amount(self):
+        return sum(item.savings for item in self.items.all())
+
+    @property
     def total_items(self):
-        return self.cart_items.count()
+        return self.items.count()
 
     class Meta:
         ordering = ['-created_at']
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='cart_items')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='cart_items')
-    price_at_time_of_adding = models.DecimalField(max_digits=10, decimal_places=2)
-    original_price = models.DecimalField(max_digits=10, decimal_places=2)
-    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    cart = models.ForeignKey(
+        Cart,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name='cart_items'
+    )
+    original_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+    price_at_time_of_adding = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+    discount_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0
+    )
     is_saved_for_later = models.BooleanField(default=False)
+    savings = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('cart', 'course')
-        ordering = ['-added_at']
-
-    def save(self, *args, **kwargs):
-        if not self.original_price:
-            self.original_price = self.course.original_price
-        
-        if not self.price_at_time_of_adding:
-            self.price_at_time_of_adding = self.course.discounted_price or self.course.original_price
-            
-        if self.original_price and self.price_at_time_of_adding:
-            self.discount_percentage = ((self.original_price - self.price_at_time_of_adding) / self.original_price) * 100
-            
-        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.course.title} in {self.cart.user.email}'s cart"
+        return f"{self.course.title} in {self.cart.user.username}'s cart"
+
+    def save(self, *args, **kwargs):
+        if not self.savings:
+            self.savings = self.original_price - self.price_at_time_of_adding
+        super().save(*args, **kwargs)

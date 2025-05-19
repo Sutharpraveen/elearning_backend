@@ -3,9 +3,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Wishlist, Cart, CartItem, Coupon
-from .serializers import WishlistSerializer, CartSerializer, CartItemSerializer
+from .serializers import WishlistSerializer, CartSummarySerializer, CartItemSerializer
 from courses.models import Course
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
 from rest_framework.decorators import api_view, permission_classes
 class WishlistViewSet(viewsets.ModelViewSet):
@@ -126,7 +127,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
                 "message": "Course moved to cart",
                 "data": {
                     "wishlist": WishlistSerializer(wishlist, context={'request': request}).data,
-                    "cart": CartSerializer(cart, context={'request': request}).data
+                    "cart": CartSummarySerializer(cart, context={'request': request}).data
                 }
             })
 
@@ -140,8 +141,8 @@ class WishlistViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CartViewSet(viewsets.ModelViewSet):
-    serializer_class = CartSerializer
     permission_classes = [IsAuthenticated]
+    serializer_class = CartSummarySerializer
 
     def get_queryset(self):
         return Cart.objects.filter(user=self.request.user)
@@ -152,86 +153,84 @@ class CartViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def get_cart_summary(self, request):
-        try:
-            cart = self.get_object()
-            return Response({
-                "status": "success",
-                "data": {
-                    "subtotal": cart.subtotal,
-                    "discount_amount": cart.discount_amount,
-                    "total_price": cart.total_price,
-                    "total_items": cart.total_items,
-                    "coupon_applied": bool(cart.coupon_code),
-                    "coupon_discount": cart.coupon_discount,
-                    "items": CartSerializer(cart, context={'request': request}).data['items']
-                }
-            })
-        except Exception as e:
-            return Response({
-                "status": "error",
-                "message": str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    @action(detail=False, methods=['post'])
-    def add_course(self, request):
-        try:
-            cart = self.get_object()
-            course_id = request.data.get('course_id')
-            
-            if not course_id:
-                return Response({
-                    "status": "error",
-                    "message": "course_id is required"
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            try:
-                course = Course.objects.get(id=course_id)
-            except Course.DoesNotExist:
-                return Response({
-                    "status": "error",
-                    "message": f"Course with id {course_id} does not exist"
-                }, status=status.HTTP_404_NOT_FOUND)
-
-            # Check if course is already in cart
-            if CartItem.objects.filter(cart=cart, course=course).exists():
-                return Response({
-                    "status": "info",
-                    "message": "Course already in cart",
-                    "data": CartSerializer(cart, context={'request': request}).data
-                })
-
-            # Create new cart item
-            cart_item = CartItem.objects.create(
-                cart=cart,
-                course=course,
-                original_price=course.original_price,
-                price_at_time_of_adding=course.discounted_price or course.original_price
-            )
-
-            return Response({
-                "status": "success",
-                "message": "Course added to cart",
-                "data": CartSerializer(cart, context={'request': request}).data
-            })
-
-        except Exception as e:
-            import traceback
-            print(f"Error adding course to cart: {str(e)}")
-            print(traceback.format_exc())
-            return Response({
-                "status": "error",
-                "message": f"An error occurred: {str(e)}"
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    @action(detail=False, methods=['post'])
-    def remove_course(self, request):
         cart = self.get_object()
-        course_id = request.data.get('course_id')
-        CartItem.objects.filter(cart=cart, course_id=course_id).delete()
+        serializer = self.get_serializer(cart)
         return Response({
-            "status": "success",
-            "message": "Course removed from cart",
-            "data": CartSerializer(cart, context={'request': request}).data
+            'status': 'success',
+            'data': serializer.data
+        })
+
+    @action(detail=False, methods=['post'])
+    def add(self, request):
+        course_id = request.data.get('course_id')
+        if not course_id:
+            return Response({
+                'status': 'error',
+                'message': 'Course ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        course = get_object_or_404(Course, id=course_id)
+        cart = self.get_object()
+
+        # Check if course is already in cart
+        cart_item = CartItem.objects.filter(cart=cart, course=course).first()
+        if cart_item:
+            return Response({
+                'status': 'error',
+                'message': 'Course is already in cart'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create new cart item
+        cart_item = CartItem.objects.create(
+            cart=cart,
+            course=course,
+            original_price=course.original_price,
+            price_at_time_of_adding=course.discounted_price or course.original_price,
+            discount_percentage=((course.original_price - (course.discounted_price or course.original_price)) / course.original_price) * 100 if course.discounted_price else 0
+        )
+
+        serializer = CartItemSerializer(cart_item)
+        return Response({
+            'status': 'success',
+            'data': serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    def remove(self, request):
+        course_id = request.data.get('course_id')
+        if not course_id:
+            return Response({
+                'status': 'error',
+                'message': 'Course ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        cart = self.get_object()
+        cart_item = get_object_or_404(CartItem, cart=cart, course_id=course_id)
+        cart_item.delete()
+
+        return Response({
+            'status': 'success',
+            'message': 'Course removed from cart'
+        })
+
+    @action(detail=False, methods=['post'])
+    def save_for_later(self, request):
+        course_id = request.data.get('course_id')
+        if not course_id:
+            return Response({
+                'status': 'error',
+                'message': 'Course ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        cart = self.get_object()
+        cart_item = get_object_or_404(CartItem, cart=cart, course_id=course_id)
+        cart_item.is_saved_for_later = True
+        cart_item.save()
+
+        serializer = CartItemSerializer(cart_item)
+        return Response({
+            'status': 'success',
+            'data': serializer.data
         })
 
     @action(detail=False, methods=['post'])
@@ -241,7 +240,7 @@ class CartViewSet(viewsets.ModelViewSet):
         return Response({
             "status": "success",
             "message": "Cart cleared",
-            "data": CartSerializer(cart, context={'request': request}).data
+            "data": CartSummarySerializer(cart, context={'request': request}).data
         })
 
     @action(detail=False, methods=['post'])
@@ -316,35 +315,6 @@ class CartViewSet(viewsets.ModelViewSet):
                 "message": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-    @action(detail=False, methods=['post'])
-    def save_for_later(self, request):
-        try:
-            cart = self.get_object()
-            course_id = request.data.get('course_id')
-            
-            try:
-                cart_item = CartItem.objects.get(cart=cart, course_id=course_id)
-                cart_item.is_saved_for_later = True
-                cart_item.save()
-                
-                return Response({
-                    "status": "success",
-                    "message": "Course saved for later",
-                    "data": CartSerializer(cart, context={'request': request}).data
-                })
-            except CartItem.DoesNotExist:
-                return Response({
-                    "status": "error",
-                    "message": "Course not found in cart"
-                }, status=status.HTTP_404_NOT_FOUND)
-
-        except Exception as e:
-            return Response({
-                "status": "error",
-                "message": str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
     @action(detail=False, methods=['post'])
     def move_to_cart(self, request):
         try:
@@ -359,7 +329,7 @@ class CartViewSet(viewsets.ModelViewSet):
                 return Response({
                     "status": "success",
                     "message": "Course moved to cart",
-                    "data": CartSerializer(cart, context={'request': request}).data
+                    "data": CartSummarySerializer(cart, context={'request': request}).data
                 })
             except CartItem.DoesNotExist:
                 return Response({

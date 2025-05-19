@@ -86,13 +86,13 @@ class ResourceAdmin(admin.ModelAdmin):
 
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ['student', 'course', 'enrolled_at', 'completed']
+    list_display = ['user', 'course', 'enrolled_at', 'completed']
     list_filter = ['completed', 'enrolled_at']
-    search_fields = ['student__email', 'course__title']
+    search_fields = ['user__email', 'course__title']
     readonly_fields = ['enrolled_at', 'completed_at', 'last_accessed']
     fieldsets = (
         (None, {
-            'fields': ('student', 'course', 'completed')
+            'fields': ('user', 'course', 'completed')
         }),
         ('Timestamps', {
             'fields': ('enrolled_at', 'completed_at', 'last_accessed'),

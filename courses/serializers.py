@@ -56,19 +56,12 @@ class SectionSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    student = UserProfileSerializer(read_only=True)
-    created_at_formatted = serializers.SerializerMethodField()
+    user = UserProfileSerializer(read_only=True)
 
     class Meta:
         model = Review
-        fields = [
-            'id', 'student', 'rating', 'comment',
-            'created_at', 'created_at_formatted'
-        ]
-        read_only_fields = ['student']
-
-    def get_created_at_formatted(self, obj):
-        return obj.created_at.strftime("%B %d, %Y")
+        fields = ['id', 'course', 'user', 'rating', 'comment', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
 
 
 # class CourseSerializer(serializers.ModelSerializer):
@@ -183,13 +176,13 @@ class CourseSerializer(serializers.ModelSerializer):
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     course = CourseSerializer(read_only=True)
-    student = UserProfileSerializer(read_only=True)
+    user = UserProfileSerializer(read_only=True)
     progress_percentage = serializers.SerializerMethodField()
 
     class Meta:
         model = Enrollment
         fields = [
-            'id', 'course', 'student', 'enrolled_at',
+            'id', 'course', 'user', 'enrolled_at',
             'completed', 'completed_at', 'last_accessed',
             'progress_percentage'
         ]
