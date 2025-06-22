@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Wishlist, Cart, CartItem
+from .models import Wishlist, Cart, CartItem, AppVersion
 from courses.serializers import CourseSerializer
 
 class WishlistSerializer(serializers.ModelSerializer):
@@ -70,3 +70,9 @@ class CartSummarySerializer(serializers.ModelSerializer):
             'coupon_discount',
             'items'
         ]
+
+class AppVersionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AppVersion
+        fields = ['id', 'version', 'platform', 'is_force_update', 'release_notes', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']

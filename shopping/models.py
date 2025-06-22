@@ -124,3 +124,21 @@ class CartItem(models.Model):
         if not self.savings:
             self.savings = self.original_price - self.price_at_time_of_adding
         super().save(*args, **kwargs)
+
+class AppVersion(models.Model):
+    version = models.CharField(max_length=50)
+    platform = models.CharField(max_length=20, choices=[
+        ('android', 'Android'),
+        ('ios', 'iOS'),
+        ('web', 'Web')
+    ])
+    is_force_update = models.BooleanField(default=False)
+    release_notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.platform} v{self.version}"

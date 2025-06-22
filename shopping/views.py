@@ -427,3 +427,11 @@ def check_course_status(request, course_id):
         "in_cart": in_cart,
         "in_wishlist": in_wishlist
     })
+
+@api_view(['GET'])
+def get_api_version(request):
+    return Response({
+        'version': '1.0.0',
+        'status': 'active',
+        'last_updated': '2024-03-20'
+    })
