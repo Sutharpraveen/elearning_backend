@@ -98,7 +98,7 @@ class Resource(models.Model):
         return f"{self.lecture.title} - {self.title}"
 
 class Enrollment(models.Model):
-    student = models.ForeignKey(CustomUser, related_name='enrollments', on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, related_name='enrollments', on_delete=models.CASCADE)
     course = models.ForeignKey(Course, related_name='enrollments', on_delete=models.CASCADE)
     enrolled_at = models.DateTimeField(auto_now_add=True)
     completed = models.BooleanField(default=False)
@@ -106,10 +106,10 @@ class Enrollment(models.Model):
     last_accessed = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        unique_together = ['student', 'course']
+        unique_together = ['user', 'course']
 
     def __str__(self):
-        return f"{self.student.email} enrolled in {self.course.title}"
+        return f"{self.user.email} enrolled in {self.course.title}"
 
 class Progress(models.Model):
     enrollment = models.ForeignKey(Enrollment, related_name='progress', on_delete=models.CASCADE)
@@ -122,7 +122,7 @@ class Progress(models.Model):
         unique_together = ['enrollment', 'lecture']
 
     def __str__(self):
-        return f"{self.enrollment.student.email} - {self.lecture.title}"
+        return f"{self.enrollment.user.email} - {self.lecture.title}"
 
 class Review(models.Model):
     course = models.ForeignKey(Course, related_name='reviews', on_delete=models.CASCADE)

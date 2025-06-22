@@ -10,6 +10,7 @@ from .serializers import (
     CourseSerializer, SectionSerializer, LectureSerializer,
     ResourceSerializer, EnrollmentSerializer, ProgressSerializer, ReviewSerializer
 )
+from django.utils import timezone
 
 # Create your views here.
 
@@ -153,4 +154,48 @@ class ProgressViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]  # Requires authentication for all actions
 
     def get_queryset(self):
-        return Progress.objects.filter(enrollment__student=self.request.user)
+        return Progress.objects.filter(enrollment__user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def update_progress(self, request, pk=None):
+        try:
+            progress = self.get_object()
+            completed = request.data.get('completed', progress.completed)
+            last_position = request.data.get('last_position', progress.last_position)
+
+            # Update progress
+            progress.completed = completed
+            progress.last_position = last_position
+            progress.save()
+
+            # Update enrollment's last_accessed
+            enrollment = progress.enrollment
+            enrollment.last_accessed = timezone.now()
+            enrollment.save()
+
+            # Check if all lectures are completed
+            total_lectures = sum(section.lectures.count() for section in enrollment.course.sections.all())
+            completed_lectures = enrollment.progress.filter(completed=True).count()
+
+            if completed_lectures == total_lectures and not enrollment.completed:
+                enrollment.completed = True
+                enrollment.completed_at = timezone.now()
+                enrollment.save()
+
+            return Response({
+                'status': 'success',
+                'message': 'Progress updated successfully',
+                'data': {
+                    'progress_id': progress.id,
+                    'lecture_id': progress.lecture.id,
+                    'completed': progress.completed,
+                    'last_position': progress.last_position,
+                    'course_completed': enrollment.completed
+                }
+            })
+
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
