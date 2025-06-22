@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/courses/', include('courses.urls')),
     path('api/core/', include('core.urls')),
     path('api/shopping/', include('shopping.urls')),
+    path('api/payments/', include('payments.urls')),
 ]
 
 # Add this for serving media files in development
