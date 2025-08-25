@@ -62,7 +62,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'elearning_db',
         'USER': 'root',
-        'PASSWORD': 'admin123',  # <-- अपना सही MySQL पासवर्ड डालो
+        'PASSWORD': '123456',  # <-- अपना सही MySQL पासवर्ड डालो
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
