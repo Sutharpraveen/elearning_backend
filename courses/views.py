@@ -103,7 +103,7 @@ class CourseViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=False, methods=['get'], url_path='by-category/(?P<category_id>\d+)')
+    @action(detail=False, methods=['get'], url_path='by-category/(?P<category_id>\\d+)')
     def by_category(self, request, category_id=None):
         courses = self.queryset.filter(category_id=category_id, is_published=True)
         serializer = self.get_serializer(courses, many=True)
