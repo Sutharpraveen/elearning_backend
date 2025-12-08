@@ -147,7 +147,7 @@ class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]  # Requires authentication for all actions
 
     def get_queryset(self):
-        return Enrollment.objects.filter(student=self.request.user)
+        return Enrollment.objects.filter(user=self.request.user)
 
 class ProgressViewSet(viewsets.ModelViewSet):
     serializer_class = ProgressSerializer

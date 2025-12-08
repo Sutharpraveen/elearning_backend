@@ -8,7 +8,7 @@ import razorpay
 import hmac
 import hashlib
 from .models import Payment
-from courses.models import Course
+from courses.models import Course, Enrollment
 from django.db import transaction
 from shopping.models import CartItem, Wishlist
 
@@ -38,7 +38,7 @@ def create_payment(request):
             }, status=status.HTTP_404_NOT_FOUND)
 
         # Check if user already owns the course
-        if course in request.user.enrolled_courses.all():
+        if Enrollment.objects.filter(user=request.user, course=course).exists():
             return Response({
                 'status': 'error',
                 'message': 'You already own this course'
@@ -125,8 +125,8 @@ def verify_payment(request):
                 course = payment.course
                 user = request.user
 
-                # 1. Add course to user's enrollments
-                user.enrolled_courses.add(course)
+                # 1. Create enrollment record
+                Enrollment.objects.get_or_create(user=user, course=course)
 
                 # 2. Remove course from cart if it exists
                 if hasattr(user, 'user_cart'):
