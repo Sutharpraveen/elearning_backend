@@ -41,7 +41,17 @@ class CartSummarySerializer(serializers.ModelSerializer):
         decimal_places=2,
         read_only=True
     )
-    discount_amount = serializers.DecimalField(
+    item_discount_amount = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        read_only=True
+    )
+    coupon_discount_amount = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        read_only=True
+    )
+    total_discount_amount = serializers.DecimalField(
         max_digits=10,
         decimal_places=2,
         read_only=True
@@ -52,21 +62,28 @@ class CartSummarySerializer(serializers.ModelSerializer):
         read_only=True
     )
     total_items = serializers.IntegerField(read_only=True)
-    coupon_applied = serializers.BooleanField(default=False)
+    coupon_applied = serializers.SerializerMethodField()
+    coupon_code = serializers.CharField(read_only=True)
     coupon_discount = serializers.DecimalField(
-        max_digits=10,
+        max_digits=5,
         decimal_places=2,
-        default=0
+        read_only=True
     )
 
     class Meta:
         model = Cart
         fields = [
             'subtotal',
-            'discount_amount',
+            'item_discount_amount',
+            'coupon_discount_amount',
+            'total_discount_amount',
             'total_price',
             'total_items',
             'coupon_applied',
+            'coupon_code',
             'coupon_discount',
             'items'
         ]
+
+    def get_coupon_applied(self, obj):
+        return bool(obj.coupon_code and obj.coupon_discount > 0)

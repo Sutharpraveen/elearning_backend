@@ -3,6 +3,8 @@ from .models import Course, Section, Lecture, Resource, Enrollment, Progress, Re
 from users.serializers import UserProfileSerializer
 from categories.serializers import SimpleCategorySerializer  # updated import
 from django.db import models
+from django.conf import settings
+import os
 
 
 class ResourceSerializer(serializers.ModelSerializer):
@@ -17,14 +19,65 @@ class ResourceSerializer(serializers.ModelSerializer):
 class LectureSerializer(serializers.ModelSerializer):
     resources = ResourceSerializer(many=True, read_only=True)
     duration_display = serializers.SerializerMethodField()
+    video_urls = serializers.SerializerMethodField()
+    processing_status = serializers.CharField(read_only=True)
 
     class Meta:
         model = Lecture
         fields = [
-            'id', 'title', 'description', 'video',
-            'duration', 'duration_display', 'is_preview',
+            'id', 'title', 'description', 'original_video',
+            'video_urls', 'processing_status',
+            'duration', 'duration_display', 'file_size', 'is_preview',
             'order', 'resources', 'created_at', 'updated_at'
         ]
+        read_only_fields = ['video_urls', 'processing_status', 'file_size']
+
+    def get_duration_display(self, obj):
+        minutes = obj.duration // 60
+        seconds = obj.duration % 60
+        return f"{minutes}:{seconds:02d}"
+
+    def get_video_urls(self, obj):
+        """Return primary video URL and available qualities"""
+        request = self.context.get('request')
+        if not request:
+            return {}
+
+        base_url = request.build_absolute_uri('/').rstrip('/')
+        video_data = {
+            'primary_url': None,
+            'available_qualities': [],
+            'stream_type': 'mp4'  # default
+        }
+
+        # Priority: HLS > 720p > 480p > 360p > 1080p (HLS is best for adaptive)
+        if obj.hls_playlist and os.path.exists(os.path.join(settings.MEDIA_ROOT, obj.hls_playlist.name)):
+            video_data['primary_url'] = f"{base_url}{obj.hls_playlist.url}"
+            video_data['stream_type'] = 'hls'
+            video_data['available_qualities'] = ['1080p', '720p', '480p', '360p']  # HLS handles all
+        elif obj.video_720p and os.path.exists(os.path.join(settings.MEDIA_ROOT, obj.video_720p.name)):
+            video_data['primary_url'] = f"{base_url}{obj.video_720p.url}"
+            video_data['stream_type'] = 'mp4'
+            video_data['available_qualities'] = ['720p', '480p', '360p']
+        elif obj.video_480p and os.path.exists(os.path.join(settings.MEDIA_ROOT, obj.video_480p.name)):
+            video_data['primary_url'] = f"{base_url}{obj.video_480p.url}"
+            video_data['stream_type'] = 'mp4'
+            video_data['available_qualities'] = ['480p', '360p']
+        elif obj.video_360p and os.path.exists(os.path.join(settings.MEDIA_ROOT, obj.video_360p.name)):
+            video_data['primary_url'] = f"{base_url}{obj.video_360p.url}"
+            video_data['stream_type'] = 'mp4'
+            video_data['available_qualities'] = ['360p']
+        elif obj.video_1080p and os.path.exists(os.path.join(settings.MEDIA_ROOT, obj.video_1080p.name)):
+            video_data['primary_url'] = f"{base_url}{obj.video_1080p.url}"
+            video_data['stream_type'] = 'mp4'
+            video_data['available_qualities'] = ['1080p']
+        elif obj.original_video and os.path.exists(os.path.join(settings.MEDIA_ROOT, obj.original_video.name)):
+            # Fallback to original video if processing not complete
+            video_data['primary_url'] = f"{base_url}{obj.original_video.url}"
+            video_data['stream_type'] = 'mp4'
+            video_data['available_qualities'] = ['original']
+
+        return video_data
 
     def get_duration_display(self, obj):
         minutes = obj.duration // 60

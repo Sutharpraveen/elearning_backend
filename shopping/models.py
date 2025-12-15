@@ -57,6 +57,8 @@ class Cart(models.Model):
         on_delete=models.CASCADE,
         related_name='cart'
     )
+    coupon_code = models.CharField(max_length=50, blank=True, null=True)
+    coupon_discount = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -68,12 +70,25 @@ class Cart(models.Model):
         return sum(item.price_at_time_of_adding for item in self.items.all())
 
     @property
-    def total_price(self):
-        return self.subtotal - self.discount_amount
+    def item_discount_amount(self):
+        """Discount from individual item prices"""
+        return sum(item.savings for item in self.items.all())
 
     @property
-    def discount_amount(self):
-        return sum(item.savings for item in self.items.all())
+    def coupon_discount_amount(self):
+        """Discount from coupon"""
+        if self.coupon_code and self.coupon_discount > 0:
+            return (self.subtotal * self.coupon_discount) / 100
+        return 0
+
+    @property
+    def total_discount_amount(self):
+        """Total discount including item and coupon discounts"""
+        return self.item_discount_amount + self.coupon_discount_amount
+
+    @property
+    def total_price(self):
+        return self.subtotal - self.total_discount_amount
 
     @property
     def total_items(self):

@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     CourseViewSet, SectionViewSet, LectureViewSet,
-    ResourceViewSet, EnrollmentViewSet
+    ResourceViewSet, EnrollmentViewSet, ProgressViewSet
 )
 
 router = DefaultRouter()
@@ -11,6 +11,7 @@ router.register('courses/(?P<course_pk>\d+)/sections', SectionViewSet, basename=
 router.register('courses/(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures', LectureViewSet, basename='section-lectures')
 router.register('courses/(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures/(?P<lecture_pk>\d+)/resources', ResourceViewSet, basename='lecture-resources')
 router.register('enrollments', EnrollmentViewSet, basename='enrollments')
+router.register('progress', ProgressViewSet, basename='progress')
 
 urlpatterns = [
     # Automatically generated routes by the router

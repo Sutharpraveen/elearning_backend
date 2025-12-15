@@ -13,7 +13,7 @@ class WishlistAdmin(admin.ModelAdmin):
 
 @admin.register(Cart)
 class CartAdmin(admin.ModelAdmin):
-    list_display = ('user', 'total_items', 'subtotal', 'discount_amount', 'total_price', 'created_at')
+    list_display = ('user', 'total_items', 'subtotal', 'total_discount_amount', 'total_price', 'coupon_code', 'created_at')
     search_fields = ('user__email', 'coupon_code')
     readonly_fields = ('created_at', 'updated_at')
     list_filter = ('created_at',)

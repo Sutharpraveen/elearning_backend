@@ -60,11 +60,41 @@ class Section(models.Model):
         return f"{self.course.title} - Section {self.order}: {self.title}"
 
 class Lecture(models.Model):
+    QUALITY_CHOICES = [
+        ('1080p', '1080p'),
+        ('720p', '720p'),
+        ('480p', '480p'),
+        ('360p', '360p'),
+    ]
+
     section = models.ForeignKey(Section, related_name='lectures', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    video = models.FileField(upload_to='lecture_videos/')
-    duration = models.PositiveIntegerField(help_text="Duration in seconds")
+
+    # Original uploaded video
+    original_video = models.FileField(upload_to='lecture_videos/original/', blank=True, null=True)
+
+    # HLS playlist and segments
+    hls_playlist = models.FileField(upload_to='lecture_videos/hls/', blank=True, null=True)
+
+    # Processed video qualities
+    video_1080p = models.FileField(upload_to='lecture_videos/1080p/', blank=True, null=True)
+    video_720p = models.FileField(upload_to='lecture_videos/720p/', blank=True, null=True)
+    video_480p = models.FileField(upload_to='lecture_videos/480p/', blank=True, null=True)
+    video_360p = models.FileField(upload_to='lecture_videos/360p/', blank=True, null=True)
+
+    # Processing status
+    processing_status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ], default='pending')
+
+    # Video metadata
+    duration = models.PositiveIntegerField(help_text="Duration in seconds", default=0)
+    file_size = models.BigIntegerField(help_text="File size in bytes", default=0)
+
     is_preview = models.BooleanField(default=False)
     order = models.PositiveIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)

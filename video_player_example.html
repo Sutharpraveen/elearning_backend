@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive Video Player - Udemy Style</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        video {
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+        }
+        .quality-selector {
+            margin: 10px 0;
+        }
+        select {
+            padding: 5px;
+            margin-left: 10px;
+        }
+        .processing {
+            color: orange;
+            font-weight: bold;
+        }
+        .ready {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Adaptive Video Player - Udemy Style</h1>
+
+    <div id="video-container">
+        <div id="processing-status" class="processing">Loading video...</div>
+        <video id="video" controls preload="metadata"></video>
+        <div class="quality-selector">
+            <label>Quality: </label>
+            <select id="quality-select" disabled>
+                <option value="">Auto</option>
+            </select>
+        </div>
+    </div>
+
+    <script>
+        // Example lecture data from your API
+        const lectureData = {
+            "id": 123,
+            "title": "Python Basics",
+            "processing_status": "completed",
+            "video_urls": {
+                "primary_url": "https://yourdomain.com/media/lecture_videos/hls/lecture_123_playlist.m3u8",
+                "stream_type": "hls",
+                "available_qualities": ["1080p", "720p", "480p", "360p"]
+            },
+            "duration": 1800
+        };
+
+        const video = document.getElementById('video');
+        const qualitySelect = document.getElementById('quality-select');
+        const statusDiv = document.getElementById('processing-status');
+
+        let hls = null;
+        let currentQuality = -1; // -1 means auto
+
+        function initializePlayer() {
+            const videoData = lectureData.video_urls;
+
+            // Update status
+            if (lectureData.processing_status === 'completed') {
+                statusDiv.textContent = 'Video ready!';
+                statusDiv.className = 'ready';
+            } else if (lectureData.processing_status === 'processing') {
+                statusDiv.textContent = 'Video processing... Please wait.';
+                statusDiv.className = 'processing';
+                return;
+            } else {
+                statusDiv.textContent = 'Video processing failed.';
+                statusDiv.className = 'processing';
+                return;
+            }
+
+            // Setup quality selector
+            setupQualitySelector(videoData.available_qualities);
+
+            // Load video
+            if (videoData.stream_type === 'hls' && videoData.primary_url) {
+                loadHLSVideo(videoData.primary_url);
+            } else if (videoData.primary_url) {
+                loadMP4Video(videoData.primary_url);
+            }
+        }
+
+        function setupQualitySelector(qualities) {
+            qualitySelect.innerHTML = '<option value="-1">Auto</option>';
+
+            qualities.forEach((quality, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = quality;
+                qualitySelect.appendChild(option);
+            });
+
+            qualitySelect.disabled = false;
+
+            qualitySelect.addEventListener('change', function() {
+                if (hls) {
+                    currentQuality = parseInt(this.value);
+                    if (currentQuality === -1) {
+                        hls.currentLevel = -1; // Auto quality
+                    } else {
+                        hls.currentLevel = currentQuality;
+                    }
+                }
+            });
+        }
+
+        function loadHLSVideo(hlsUrl) {
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    backBufferLength: 90
+                });
+
+                hls.loadSource(hlsUrl);
+                hls.attachMedia(video);
+
+                hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
+                    console.log('HLS manifest loaded, found ' + data.levels.length + ' quality levels');
+
+                    // Update quality selector with actual HLS levels
+                    updateQualitySelectorWithHLSLevels(data.levels);
+
+                    // Start playing if video is ready
+                    video.play().catch(e => {
+                        console.log('Autoplay prevented:', e);
+                    });
+                });
+
+                hls.on(Hls.Events.LEVEL_SWITCHED, function(event, data) {
+                    console.log('Quality switched to level:', data.level);
+                    qualitySelect.value = data.level;
+                });
+
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    console.error('HLS error:', data);
+                    if (data.fatal) {
+                        switch(data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                hls.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                loadMP4Video(hlsUrl.replace('.m3u8', '_720p.mp4')); // Fallback
+                                break;
+                        }
+                    }
+                });
+
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Native HLS support (Safari)
+                video.src = hlsUrl;
+                video.addEventListener('loadedmetadata', function() {
+                    console.log('Video loaded with native HLS support');
+                });
+            } else {
+                console.error('HLS not supported, falling back to MP4');
+                loadMP4Video(hlsUrl.replace('.m3u8', '_720p.mp4'));
+            }
+        }
+
+        function loadMP4Video(mp4Url) {
+            video.src = mp4Url;
+            video.addEventListener('loadedmetadata', function() {
+                console.log('MP4 video loaded');
+            });
+        }
+
+        function updateQualitySelectorWithHLSLevels(levels) {
+            qualitySelect.innerHTML = '<option value="-1">Auto</option>';
+
+            levels.forEach((level, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${level.width}x${level.height} (${Math.round(level.bitrate/1000)}k)`;
+                qualitySelect.appendChild(option);
+            });
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializePlayer);
+
+        // Handle visibility change for performance
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // Pause video when tab is not visible
+                video.pause();
+            }
+        });
+
+        // Quality monitoring (optional)
+        video.addEventListener('timeupdate', function() {
+            // Could implement quality monitoring based on buffer health
+            if (hls && hls.bufferInfo) {
+                const bufferHealth = hls.bufferInfo.len / hls.bufferInfo.totalBuffer;
+                if (bufferHealth < 0.1 && currentQuality > 0) {
+                    // Buffer running low, could switch to lower quality
+                    console.log('Buffer low, consider quality adjustment');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

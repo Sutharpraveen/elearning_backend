@@ -1,28 +1,78 @@
-# Django and DRF
+# ===========================================
+# Django Core & REST Framework
+# ===========================================
 Django==5.1.5
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.1
 
-# Database
-mysqlclient==2.2.4
+# ===========================================
+# Database & Storage
+# ===========================================
+# mysqlclient==2.2.4  # Uncomment for MySQL
+boto3==1.34.34
+django-storages==1.14.2
 
-# Image Processing
+# ===========================================
+# Image & Media Processing
+# ===========================================
 Pillow==10.1.0
+moviepy==1.0.3
+opencv-python==4.8.1.78
 
-# CORS headers
+# ===========================================
+# Video Processing
+# ===========================================
+ffmpeg-python==0.2.0
+
+# ===========================================
+# Background Tasks & Queues
+# ===========================================
+celery==5.3.4
+django-celery-beat==2.5.0
+django-celery-results==2.6.0
+# django-background-tasks==1.2.5  # Alternative simple background tasks
+
+# ===========================================
+# HTTP & External APIs
+# ===========================================
+requests==2.31.0
 django-cors-headers==4.3.1
 
-# Environment variables
+# ===========================================
+# Payment Gateway
+# ===========================================
+razorpay==1.4.1
+
+# ===========================================
+# Production Server
+# ===========================================
+gunicorn==21.2.0
+whitenoise==6.6.0
+django-compressor==4.4
+
+# ===========================================
+# Security & Performance
+# ===========================================
+django-secure==1.0.2
+django-csp==3.8
+
+# ===========================================
+# Monitoring & Logging
+# ===========================================
+sentry-sdk==1.38.0
+django-logging==1.0.1
+
+# ===========================================
+# Environment & Configuration
+# ===========================================
 python-dotenv==1.0.0
 
-# Production server
-gunicorn==21.2.0
-
-# For handling static files in production
-whitenoise==6.6.0
-
-# For better datetime handling
+# ===========================================
+# Utilities
+# ===========================================
 pytz==2024.1
 
-# Payment Gateway
-razorpay==1.4.1
+# ===========================================
+# Optional/Production Email
+# ===========================================
+# django-smtp-ssl==1.0  # Uncomment for secure SMTP

@@ -236,7 +236,7 @@ class CartViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def clear_cart(self, request):
         cart = self.get_object()
-        cart.cart_items.all().delete()
+        cart.items.all().delete()
         return Response({
             "status": "success",
             "message": "Cart cleared",
@@ -276,24 +276,25 @@ class CartViewSet(viewsets.ModelViewSet):
                     "message": "Coupon is not valid or has expired"
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            # Check if user has already used this coupon
+            if coupon.users_used.filter(id=request.user.id).exists():
+                return Response({
+                    "status": "error",
+                    "message": "You have already used this coupon"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             if cart.subtotal < coupon.min_purchase_amount:
                 return Response({
                     "status": "error",
                     "message": f"Minimum purchase amount of {coupon.min_purchase_amount} required"
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Calculate discount amount
-            discount_amount = (cart.subtotal * coupon.discount_percentage) / 100
-            
-            # Apply max discount if set
-            if coupon.max_discount_amount and discount_amount > coupon.max_discount_amount:
-                discount_amount = coupon.max_discount_amount
-
             cart.coupon_code = coupon.code
             cart.coupon_discount = coupon.discount_percentage
             cart.save()
 
-            # Increment coupon usage
+            # Add user to coupon users and increment usage
+            coupon.users_used.add(request.user)
             coupon.used_count += 1
             coupon.save()
 
@@ -303,8 +304,9 @@ class CartViewSet(viewsets.ModelViewSet):
                 "data": {
                     "coupon_code": coupon.code,
                     "discount_percentage": coupon.discount_percentage,
-                    "discount_amount": discount_amount,
+                    "coupon_discount_amount": cart.coupon_discount_amount,
                     "subtotal": cart.subtotal,
+                    "total_discount_amount": cart.total_discount_amount,
                     "total_price": cart.total_price
                 }
             })
@@ -372,7 +374,7 @@ class CartViewSet(viewsets.ModelViewSet):
                 "message": "Coupon removed successfully",
                 "data": {
                     "subtotal": cart.subtotal,
-                    "discount_amount": cart.discount_amount,
+                    "total_discount_amount": cart.total_discount_amount,
                     "total_price": cart.total_price
                 }
             })

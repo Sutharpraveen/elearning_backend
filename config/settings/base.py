@@ -76,16 +76,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # --------------------------
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'elearning_db',
-        'USER': 'root',
-        'PASSWORD': '123456',  # <-- Use your MySQL password
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset': 'utf8mb4',
-        }
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
