@@ -14,7 +14,7 @@ class WishlistSerializer(serializers.ModelSerializer):
         return obj.courses.count()
 
 class CartItemSerializer(serializers.ModelSerializer):
-    course = CourseSerializer()
+    course = CourseSerializer(read_only=True)
     savings = serializers.DecimalField(
         max_digits=10,
         decimal_places=2,

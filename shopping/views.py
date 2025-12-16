@@ -389,7 +389,7 @@ class CartViewSet(viewsets.ModelViewSet):
     def get_saved_items(self, request):
         try:
             cart = self.get_object()
-            saved_items = cart.cart_items.filter(is_saved_for_later=True)
+            saved_items = cart.items.filter(is_saved_for_later=True)
             
             return Response({
                 "status": "success",

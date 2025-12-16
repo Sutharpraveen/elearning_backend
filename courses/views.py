@@ -11,7 +11,7 @@ from .serializers import (
     ResourceSerializer, EnrollmentSerializer, ProgressSerializer, ReviewSerializer
 )
 from django.utils import timezone
-from .video_utils import process_lecture_video
+from .video_utils import process_lecture_video_universal
 import threading
 
 
@@ -163,25 +163,35 @@ class LectureViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         lecture = serializer.save()
 
-        # If video was uploaded, start background processing
-        if hasattr(lecture, 'original_video') and lecture.original_video:
-            # Start video processing in background thread
-            thread = threading.Thread(target=process_lecture_video, args=(lecture.id,))
+        # If any video was uploaded, start universal processing
+        if (hasattr(lecture, 'video_file') and lecture.video_file) or \
+           (hasattr(lecture, 'original_video') and lecture.original_video):
+            # Start universal video processing in background thread
+            thread = threading.Thread(target=process_lecture_video_universal, args=(lecture.id,))
             thread.daemon = True
             thread.start()
+            print(f"Universal video processing started for lecture: {lecture.title}")
+        else:
+            # No video uploaded, mark as ready
+            lecture.processing_status = 'ready'
+            lecture.save()
 
     def perform_update(self, serializer):
         lecture = serializer.save()
 
-        # If video was updated, reprocess it
-        if hasattr(lecture, 'original_video') and lecture.original_video and lecture.processing_status != 'processing':
-            lecture.processing_status = 'pending'
-            lecture.save()
+        # If any video was uploaded/updated, start universal processing
+        if ((hasattr(lecture, 'video_file') and lecture.video_file) or \
+            (hasattr(lecture, 'original_video') and lecture.original_video)) and \
+           lecture.processing_status != 'processing':
 
-            # Start video processing in background thread
-            thread = threading.Thread(target=process_lecture_video, args=(lecture.id,))
+            # Start universal video processing in background thread
+            thread = threading.Thread(target=process_lecture_video_universal, args=(lecture.id,))
             thread.daemon = True
             thread.start()
+            print(f"Universal video processing started for updated lecture: {lecture.title}")
+        else:
+            # No video change, keep current status
+            pass
 
 class ResourceViewSet(viewsets.ModelViewSet):
     serializer_class = ResourceSerializer

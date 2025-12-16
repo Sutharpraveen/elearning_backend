@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test MP4 Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .upload-form {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 Test Direct MP4 Upload</h1>
+
+    <div class="upload-form">
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="title">Lecture Title:</label>
+                <input type="text" id="title" name="title" required placeholder="Enter lecture title">
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <textarea id="description" name="description" rows="3" placeholder="Enter lecture description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="order">Order:</label>
+                <input type="number" id="order" name="order" required value="1" min="1">
+            </div>
+
+            <div class="form-group">
+                <label for="video_file">MP4 Video File:</label>
+                <input type="file" id="video_file" name="video_file" accept=".mp4" required>
+                <small style="color: #666;">Only MP4 files are supported for direct upload</small>
+            </div>
+
+            <div class="form-group">
+                <label for="is_preview">
+                    <input type="checkbox" id="is_preview" name="is_preview"> Preview Video
+                </label>
+            </div>
+
+            <button type="submit">📤 Upload Lecture</button>
+        </form>
+    </div>
+
+    <div id="result" class="result"></div>
+
+    <div class="info">
+        <h3>📋 Instructions:</h3>
+        <ol>
+            <li>Fill in the lecture details</li>
+            <li>Select an MP4 video file</li>
+            <li>Click Upload</li>
+            <li>Video will be immediately playable (no processing needed)</li>
+        </ol>
+
+        <h3>🔧 Technical Details:</h3>
+        <ul>
+            <li><strong>Upload Field:</strong> video_file (direct MP4)</li>
+            <li><strong>Processing:</strong> None required</li>
+            <li><strong>Playback:</strong> Immediate HTML5 video support</li>
+            <li><strong>Status:</strong> 'direct' (no transcoding)</li>
+        </ul>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const resultDiv = document.getElementById('result');
+
+        function showResult(message, isError = false) {
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${isError ? 'error' : 'success'}`;
+            resultDiv.style.display = 'block';
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+
+            // Get course and section IDs (hardcoded for testing)
+            const courseId = 1;  // Update this based on your data
+            const sectionId = 1; // Update this based on your data
+
+            try {
+                showResult('📤 Uploading video...');
+
+                const response = await fetch(`http://127.0.0.1:8002/api/courses/${courseId}/sections/${sectionId}/lectures/`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY1OTE4OTIzLCJpYXQiOjE3NjU5MTUzMjMsImp0aSI6ImY0ZjU2NDIxMTY2MTQyMzg5NjY2OWU5NThhOWUyZDVjIiwidXNlcl9pZCI6MX0.e9r6F6crsAz241g9mzmbbpK5Pb5EI0Hs4Wj23uArmZg'
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResult(`✅ Lecture uploaded successfully!\\n\\nTitle: ${data.title}\\nStatus: ${data.processing_status}\\nVideo URL: ${data.video_urls?.primary_url || 'N/A'}`);
+
+                    // Reset form
+                    form.reset();
+                } else {
+                    showResult(`❌ Upload failed: ${JSON.stringify(data, null, 2)}`, true);
+                }
+
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, true);
+            }
+        });
+
+        // File validation
+        document.getElementById('video_file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Check file type
+                if (!file.type.includes('mp4')) {
+                    alert('Please select an MP4 file only');
+                    e.target.value = '';
+                    return;
+                }
+
+                // Check file size (optional - 500MB limit)
+                const maxSize = 500 * 1024 * 1024; // 500MB
+                if (file.size > maxSize) {
+                    alert('File size too large. Maximum 500MB allowed.');
+                    e.target.value = '';
+                    return;
+                }
+
+                console.log(`Selected file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+            }
+        });
+    </script>
+</body>
+</html>

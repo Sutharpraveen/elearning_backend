@@ -150,3 +150,4 @@ Authorization: Bearer {access_token}
 ---
 
 **Complete API reference for your Udemy-like platform! 🚀**
+

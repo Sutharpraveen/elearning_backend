@@ -137,7 +137,9 @@ class VideoProcessor:
             bandwidth = self._get_bandwidth(config['bitrate'])
             resolution = config['resolution']
             quality_name = quality if quality != 'original' else 'Auto'
-            playlist_filename = os.path.basename(quality_playlist_path)
+
+            # Reference the quality playlist in its subdirectory
+            playlist_filename = f'lecture_{self.lecture_id}_{quality}/lecture_{self.lecture_id}_{quality}.m3u8'
 
             master_playlist += f'#EXT-X-STREAM-INF:'
             master_playlist += f'BANDWIDTH={bandwidth},'
@@ -287,11 +289,278 @@ class VideoProcessor:
 
         return None
 
-def process_lecture_video(lecture_id):
-    """Background task to process video for a lecture"""
+class UniversalVideoProcessor:
+    """Universal video processor that handles any format and creates multiple qualities"""
+
+    SUPPORTED_INPUT_FORMATS = ['.mp4', '.mov', '.avi', '.mkv', '.wmv', '.flv', '.webm', '.m4v']
+    OUTPUT_QUALITIES = {
+        '360p': {'height': 360, 'bitrate': '800k', 'audio_bitrate': '96k'},
+        '480p': {'height': 480, 'bitrate': '1200k', 'audio_bitrate': '128k'},
+        '720p': {'height': 720, 'bitrate': '2500k', 'audio_bitrate': '128k'},
+        '1080p': {'height': 1080, 'bitrate': '4500k', 'audio_bitrate': '192k'},
+    }
+
+    def __init__(self, lecture):
+        self.lecture = lecture
+        self.media_root = settings.MEDIA_ROOT
+        self.lecture_id = str(lecture.id)
+
+    def validate_input_video(self, video_path):
+        """Validate input video format and get info"""
+        if not os.path.exists(video_path):
+            return False, "Video file does not exist"
+
+        file_ext = os.path.splitext(video_path)[1].lower()
+        if file_ext not in self.SUPPORTED_INPUT_FORMATS:
+            return False, f"Unsupported format: {file_ext}. Supported: {', '.join(self.SUPPORTED_INPUT_FORMATS)}"
+
+        # Get video info
+        duration, file_size = self.get_video_info(video_path)
+        if duration <= 0:
+            return False, "Invalid or corrupted video file"
+
+        return True, {
+            'duration': duration,
+            'file_size': file_size,
+            'format': file_ext
+        }
+
+    def get_video_info(self, video_path):
+        """Get video duration and metadata"""
+        try:
+            cmd = [
+                'ffprobe',
+                '-v', 'quiet',
+                '-print_format', 'json',
+                '-show_format',
+                '-show_streams',
+                video_path
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            if result.returncode == 0:
+                data = json.loads(result.stdout)
+                duration = float(data['format']['duration'])
+                size = int(data['format']['size'])
+                return duration, size
+        except Exception:
+            pass
+        return 0, 0
+
+    def convert_to_mp4(self, input_path, output_path):
+        """Convert any video format to MP4"""
+        try:
+            cmd = [
+                'ffmpeg',
+                '-i', input_path,  # Input file
+                '-c:v', 'libx264',  # Video codec
+                '-preset', 'medium',  # Encoding preset
+                '-crf', '23',  # Quality (lower = better)
+                '-c:a', 'aac',  # Audio codec
+                '-b:a', '128k',  # Audio bitrate
+                '-movflags', '+faststart',  # Web optimization
+                '-y',  # Overwrite
+                output_path  # Output file
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            return result.returncode == 0
+
+        except subprocess.TimeoutExpired:
+            return False
+
+    def create_quality_version(self, input_path, output_path, quality_config):
+        """Create a specific quality version"""
+        try:
+            cmd = [
+                'ffmpeg',
+                '-i', input_path,
+                '-vf', f'scale=-2:{quality_config["height"]}',  # Scale to specific height
+                '-c:v', 'libx264',
+                '-b:v', quality_config['bitrate'],
+                '-c:a', 'aac',
+                '-b:a', quality_config['audio_bitrate'],
+                '-preset', 'medium',
+                '-crf', '23',
+                '-maxrate', quality_config['bitrate'],
+                '-bufsize', f'{int(quality_config["bitrate"].rstrip("k")) * 2}k',
+                '-f', 'mp4',
+                '-movflags', '+faststart',
+                '-y',
+                output_path
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            return result.returncode == 0
+
+        except subprocess.TimeoutExpired:
+            return False
+
+    def create_hls_streams(self):
+        """Create HLS streams for all quality versions"""
+        hls_base = os.path.join(self.media_root, 'lecture_videos', 'hls')
+        os.makedirs(hls_base, exist_ok=True)
+
+        master_playlist = "#EXTM3U\n#EXT-X-VERSION:6\n"
+        available_qualities = []
+
+        # Process each quality
+        for quality_name, config in self.OUTPUT_QUALITIES.items():
+            mp4_path = os.path.join(self.media_root, 'lecture_videos', f'lecture_{self.lecture_id}_{quality_name}.mp4')
+
+            if os.path.exists(mp4_path):
+                # Create HLS segments for this quality
+                hls_dir = os.path.join(hls_base, f'lecture_{self.lecture_id}_{quality_name}')
+                os.makedirs(hls_dir, exist_ok=True)
+
+                segment_pattern = os.path.join(hls_dir, 'segment_%03d.ts')
+                playlist_path = os.path.join(hls_dir, f'lecture_{self.lecture_id}_{quality_name}.m3u8')
+
+                try:
+                    cmd = [
+                        'ffmpeg',
+                        '-i', mp4_path,
+                        '-c:v', 'libx264',
+                        '-c:a', 'aac',
+                        '-b:v', config['bitrate'],
+                        '-b:a', config['audio_bitrate'],
+                        '-vf', f'scale=-2:{config["height"]}',
+                        '-hls_time', '10',
+                        '-hls_list_size', '0',
+                        '-hls_segment_filename', segment_pattern,
+                        '-f', 'hls',
+                        '-y',
+                        playlist_path
+                    ]
+
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+                    if result.returncode == 0:
+                        # Add to master playlist
+                        bandwidth = int(config['bitrate'].rstrip('k')) * 1000
+                        master_playlist += f'#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},RESOLUTION={1920 if quality_name == "1080p" else 1280 if quality_name == "720p" else 854 if quality_name == "480p" else 640}x{config["height"]},NAME="{quality_name}"\n'
+                        master_playlist += f'lecture_{self.lecture_id}_{quality_name}/lecture_{self.lecture_id}_{quality_name}.m3u8\n'
+
+                        available_qualities.append(quality_name)
+
+                except subprocess.TimeoutExpired:
+                    continue
+
+        if available_qualities:
+            # Write master playlist
+            master_path = os.path.join(hls_base, f'lecture_{self.lecture_id}_master.m3u8')
+            with open(master_path, 'w') as f:
+                f.write(master_playlist)
+
+            return f'lecture_videos/hls/lecture_{self.lecture_id}_master.m3u8'
+
+        return None
+
+    def process_video(self):
+        """Main processing method - Udemy-style video processing"""
+        try:
+            print(f"🎬 Starting universal video processing for lecture {self.lecture_id}")
+
+            # Get input video path
+            if self.lecture.video_file:
+                input_path = os.path.join(self.media_root, self.lecture.video_file.name)
+            elif hasattr(self.lecture, 'original_video') and self.lecture.original_video:
+                input_path = os.path.join(self.media_root, self.lecture.original_video.name)
+            else:
+                print("❌ No video file found")
+                return False
+
+            # Validate input video
+            valid, info = self.validate_input_video(input_path)
+            if not valid:
+                print(f"❌ Validation failed: {info}")
+                self.lecture.processing_status = 'failed'
+                self.lecture.save()
+                return False
+
+            print(f"✅ Input video validated: {info['format']}, {info['duration']:.1f}s, {info['file_size']/1024/1024:.1f}MB")
+
+            # Update processing status
+            self.lecture.processing_status = 'processing'
+            self.lecture.duration = int(info['duration'])
+            self.lecture.file_size = info['file_size']
+            self.lecture.save()
+
+            # Create output directory
+            output_dir = os.path.join(self.media_root, 'lecture_videos')
+            os.makedirs(output_dir, exist_ok=True)
+
+            processed_qualities = []
+
+            # If input is not MP4, convert to MP4 first
+            if info['format'] != '.mp4':
+                print("🔄 Converting to MP4 format...")
+                mp4_path = os.path.join(output_dir, f'lecture_{self.lecture_id}_source.mp4')
+                if not self.convert_to_mp4(input_path, mp4_path):
+                    print("❌ MP4 conversion failed")
+                    self.lecture.processing_status = 'failed'
+                    self.lecture.save()
+                    return False
+                print("✅ Converted to MP4")
+                processing_input = mp4_path
+            else:
+                processing_input = input_path
+
+            # Create quality versions
+            print("🎯 Creating quality versions...")
+            for quality_name, config in self.OUTPUT_QUALITIES.items():
+                output_path = os.path.join(output_dir, f'lecture_{self.lecture_id}_{quality_name}.mp4')
+                print(f"   Processing {quality_name}...")
+
+                if self.create_quality_version(processing_input, output_path, config):
+                    processed_qualities.append(quality_name)
+                    print(f"   ✅ {quality_name} completed")
+                else:
+                    print(f"   ❌ {quality_name} failed")
+
+            if not processed_qualities:
+                print("❌ No quality versions created")
+                self.lecture.processing_status = 'failed'
+                self.lecture.save()
+                return False
+
+            # Create HLS streams
+            print("📺 Creating HLS streams...")
+            hls_playlist = self.create_hls_streams()
+
+            if hls_playlist:
+                print("✅ HLS streams created")
+            else:
+                print("⚠️  HLS creation failed, but MP4 qualities available")
+
+            # Update lecture with processed files
+            for quality in processed_qualities:
+                field_name = f'video_{quality.lower()}'
+                file_path = f'lecture_videos/lecture_{self.lecture_id}_{quality}.mp4'
+                setattr(self.lecture, field_name, file_path)
+
+            if hls_playlist:
+                self.lecture.hls_playlist = hls_playlist
+
+            self.lecture.processing_status = 'completed'
+            self.lecture.save()
+
+            print(f"🎉 Video processing completed! Qualities: {', '.join(processed_qualities)}")
+            return True
+
+        except Exception as e:
+            print(f"❌ Processing error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            self.lecture.processing_status = 'failed'
+            self.lecture.save()
+            return False
+
+def process_lecture_video_universal(lecture_id):
+    """Universal video processing function - handles any format"""
     try:
         lecture = Lecture.objects.get(id=lecture_id)
-        processor = VideoProcessor(lecture)
+        processor = UniversalVideoProcessor(lecture)
         return processor.process_video()
     except Lecture.DoesNotExist:
         return False
+

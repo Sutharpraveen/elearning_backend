@@ -74,3 +74,4 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.WARNING('Please specify --lecture-id or --all')
             )
+

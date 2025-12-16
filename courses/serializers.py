@@ -25,7 +25,7 @@ class LectureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lecture
         fields = [
-            'id', 'title', 'description', 'original_video',
+            'id', 'title', 'description', 'video_file',
             'video_urls', 'processing_status',
             'duration', 'duration_display', 'file_size', 'is_preview',
             'order', 'resources', 'created_at', 'updated_at'
@@ -50,11 +50,37 @@ class LectureSerializer(serializers.ModelSerializer):
             'stream_type': 'mp4'  # default
         }
 
-        # Priority: HLS > 720p > 480p > 360p > 1080p (HLS is best for adaptive)
-        if obj.hls_playlist and os.path.exists(os.path.join(settings.MEDIA_ROOT, obj.hls_playlist.name)):
+        # Priority: HLS > Processed qualities > Direct MP4 (fallback)
+        if obj.hls_playlist and os.path.exists(os.path.join(settings.MEDIA_ROOT, str(obj.hls_playlist))):
+            # HLS streaming (best - adaptive bitrate)
             video_data['primary_url'] = f"{base_url}{obj.hls_playlist.url}"
             video_data['stream_type'] = 'hls'
-            video_data['available_qualities'] = ['1080p', '720p', '480p', '360p']  # HLS handles all
+            video_data['available_qualities'] = ['1080p', '720p', '480p', '360p']  # HLS handles all qualities
+        elif obj.video_720p and os.path.exists(os.path.join(settings.MEDIA_ROOT, str(obj.video_720p))):
+            # Processed HD quality
+            video_data['primary_url'] = f"{base_url}{obj.video_720p.url}"
+            video_data['stream_type'] = 'mp4'
+            video_data['available_qualities'] = ['720p', '480p', '360p']
+        elif obj.video_480p and os.path.exists(os.path.join(settings.MEDIA_ROOT, str(obj.video_480p))):
+            # Processed SD quality
+            video_data['primary_url'] = f"{base_url}{obj.video_480p.url}"
+            video_data['stream_type'] = 'mp4'
+            video_data['available_qualities'] = ['480p', '360p']
+        elif obj.video_360p and os.path.exists(os.path.join(settings.MEDIA_ROOT, str(obj.video_360p))):
+            # Processed mobile quality
+            video_data['primary_url'] = f"{base_url}{obj.video_360p.url}"
+            video_data['stream_type'] = 'mp4'
+            video_data['available_qualities'] = ['360p']
+        elif obj.video_1080p and os.path.exists(os.path.join(settings.MEDIA_ROOT, str(obj.video_1080p))):
+            # Processed full HD quality
+            video_data['primary_url'] = f"{base_url}{obj.video_1080p.url}"
+            video_data['stream_type'] = 'mp4'
+            video_data['available_qualities'] = ['1080p']
+        elif obj.video_file and os.path.exists(os.path.join(settings.MEDIA_ROOT, str(obj.video_file))):
+            # Direct MP4 upload - fallback when no processing done
+            video_data['primary_url'] = f"{base_url}{obj.video_file.url}"
+            video_data['stream_type'] = 'mp4'
+            video_data['available_qualities'] = ['original']
         elif obj.video_720p and os.path.exists(os.path.join(settings.MEDIA_ROOT, obj.video_720p.name)):
             video_data['primary_url'] = f"{base_url}{obj.video_720p.url}"
             video_data['stream_type'] = 'mp4'
@@ -71,8 +97,8 @@ class LectureSerializer(serializers.ModelSerializer):
             video_data['primary_url'] = f"{base_url}{obj.video_1080p.url}"
             video_data['stream_type'] = 'mp4'
             video_data['available_qualities'] = ['1080p']
-        elif obj.original_video and os.path.exists(os.path.join(settings.MEDIA_ROOT, obj.original_video.name)):
-            # Fallback to original video if processing not complete
+        elif hasattr(obj, 'original_video') and obj.original_video and os.path.exists(os.path.join(settings.MEDIA_ROOT, obj.original_video.name)):
+            # Legacy fallback to original video
             video_data['primary_url'] = f"{base_url}{obj.original_video.url}"
             video_data['stream_type'] = 'mp4'
             video_data['available_qualities'] = ['original']

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Video Upload - Udemy Style</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+            margin: 20px 0;
+        }
+        .upload-zone:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+        .upload-zone.dragover {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        .file-input {
+            display: none;
+        }
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+        .form-group {
+            margin: 20px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .supported-formats {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #2196F3;
+        }
+        .qualities {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .quality-card {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .processing {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+            display: none;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .video-preview {
+            margin: 20px 0;
+            display: none;
+        }
+        video {
+            width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+        .feature-card h4 {
+            margin: 0 0 8px 0;
+            color: #495057;
+        }
+        .feature-card p {
+            margin: 0;
+            font-size: 14px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Universal Video Upload</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Upload any video format - automatic processing like Udemy!
+        </p>
+
+        <div class="features">
+            <div class="feature-card">
+                <h4>🎯 Any Format</h4>
+                <p>MP4, MOV, AVI, MKV, WMV, FLV, WebM</p>
+            </div>
+            <div class="feature-card">
+                <h4>⚡ Auto Convert</h4>
+                <p>Automatic format conversion to MP4</p>
+            </div>
+            <div class="feature-card">
+                <h4>📊 Multi Quality</h4>
+                <p>Creates 4 quality versions</p>
+            </div>
+            <div class="feature-card">
+                <h4>🎮 Adaptive</h4>
+                <p>HLS streaming with quality switching</p>
+            </div>
+        </div>
+
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="title">Lecture Title *</label>
+                <input type="text" id="title" name="title" required
+                       placeholder="Enter lecture title">
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" rows="3"
+                          placeholder="Enter lecture description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="order">Order *</label>
+                <input type="number" id="order" name="order" required value="1" min="1">
+            </div>
+
+            <div class="upload-zone" id="uploadZone">
+                <div>
+                    <h3 style="margin: 0 0 10px 0; color: #667eea;">📤 Drop Video Here</h3>
+                    <p style="margin: 0 0 20px 0; color: #666;">
+                        or click to browse files
+                    </p>
+                    <input type="file" id="video_file" name="video_file"
+                           accept=".mp4,.mov,.avi,.mkv,.wmv,.flv,.webm,.m4v" required>
+                    <br><br>
+                    <button type="button" class="upload-btn" onclick="document.getElementById('video_file').click()">
+                        Choose Video File
+                    </button>
+                </div>
+            </div>
+
+            <div class="supported-formats">
+                <h4 style="margin: 0 0 10px 0;">✅ Supported Formats:</h4>
+                <p style="margin: 0; font-size: 14px;">
+                    MP4, MOV, AVI, MKV, WMV, FLV, WebM, M4V
+                </p>
+            </div>
+
+            <div style="text-align: center; margin: 20px 0;">
+                <button type="submit" class="upload-btn" style="padding: 15px 40px; font-size: 18px;">
+                    🚀 Start Processing
+                </button>
+            </div>
+        </form>
+
+        <div class="qualities">
+            <div class="quality-card">
+                <strong>360p</strong><br>
+                Mobile Quality<br>
+                ~800k bitrate
+            </div>
+            <div class="quality-card">
+                <strong>480p</strong><br>
+                SD Quality<br>
+                ~1200k bitrate
+            </div>
+            <div class="quality-card">
+                <strong>720p</strong><br>
+                HD Quality<br>
+                ~2500k bitrate
+            </div>
+            <div class="quality-card">
+                <strong>1080p</strong><br>
+                Full HD<br>
+                ~4500k bitrate
+            </div>
+        </div>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="video-preview" id="videoPreview">
+            <h3>🎥 Processed Video Preview</h3>
+            <video id="processedVideo" controls>
+                Your browser does not support the video tag.
+            </video>
+            <p style="text-align: center; margin: 10px 0; color: #666; font-size: 14px;">
+                Video will be available after processing completes
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('video_file');
+        const uploadForm = document.getElementById('uploadForm');
+        const statusDiv = document.getElementById('status');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const videoPreview = document.getElementById('videoPreview');
+        const processedVideo = document.getElementById('processedVideo');
+
+        // Drag and drop functionality
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                updateFileDisplay(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                updateFileDisplay(e.target.files[0]);
+            }
+        });
+
+        function updateFileDisplay(file) {
+            const fileName = file.name;
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            uploadZone.innerHTML = `
+                <div>
+                    <h3 style="margin: 0 0 10px 0; color: #28a745;">✅ File Selected</h3>
+                    <p style="margin: 0; font-weight: bold;">${fileName}</p>
+                    <p style="margin: 5px 0; color: #666;">${fileSize} MB</p>
+                    <button type="button" class="upload-btn" onclick="fileInput.click()" style="padding: 8px 16px; font-size: 14px;">
+                        Change File
+                    </button>
+                </div>
+            `;
+        }
+
+        function showStatus(message, type = 'success') {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        function updateProgress(percent) {
+            progressBar.style.display = 'block';
+            progressFill.style.width = `${percent}%`;
+        }
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(uploadForm);
+
+            try {
+                showStatus('📤 Starting video upload...', 'processing');
+                updateProgress(10);
+
+                // Simulate progress updates
+                setTimeout(() => updateProgress(30), 1000);
+                setTimeout(() => updateProgress(50), 2000);
+
+                const response = await fetch('http://127.0.0.1:8002/api/courses/1/sections/1/lectures/', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY1OTE4OTIzLCJpYXQiOjE3NjU5MTUzMjMsImp0aSI6ImY0ZjU2NDIxMTY2MTQyMzg5NjY2OWU5NThhOWUyZDVjIiwidXNlcl9pZCI6MX0.e9r6F6crsAz241g9mzmbbpK5Pb5EI0Hs4Wj23uArmZg'
+                    },
+                    body: formData
+                });
+
+                updateProgress(70);
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    updateProgress(100);
+                    showStatus(`✅ Lecture uploaded successfully!\\n\\n🎬 Processing started for "${data.title}"\\n\\n📊 Check status: GET /api/courses/1/sections/1/lectures/${data.id}/`);
+
+                    // Show video preview section
+                    videoPreview.style.display = 'block';
+
+                    // Reset form after 3 seconds
+                    setTimeout(() => {
+                        uploadForm.reset();
+                        uploadZone.innerHTML = `
+                            <div>
+                                <h3 style="margin: 0 0 10px 0; color: #667eea;">📤 Drop Video Here</h3>
+                                <p style="margin: 0 0 20px 0; color: #666;">
+                                    or click to browse files
+                                </p>
+                                <button type="button" class="upload-btn" onclick="document.getElementById('video_file').click()">
+                                    Choose Video File
+                                </button>
+                            </div>
+                        `;
+                        progressBar.style.display = 'none';
+                    }, 3000);
+
+                } else {
+                    showStatus(`❌ Upload failed: ${JSON.stringify(data, null, 2)}`, 'error');
+                    progressBar.style.display = 'none';
+                }
+
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+                progressBar.style.display = 'none';
+            }
+        });
+
+        // File size validation
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const maxSize = 2000 * 1024 * 1024; // 2GB
+                if (file.size > maxSize) {
+                    alert('File size too large. Maximum 2GB allowed.');
+                    e.target.value = '';
+                    return;
+                }
+
+                // Check format
+                const allowedFormats = ['mp4', 'mov', 'avi', 'mkv', 'wmv', 'flv', 'webm', 'm4v'];
+                const fileExt = file.name.split('.').pop().toLowerCase();
+
+                if (!allowedFormats.includes(fileExt)) {
+                    alert(`Unsupported format. Supported: ${allowedFormats.join(', ')}`);
+                    e.target.value = '';
+                    return;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

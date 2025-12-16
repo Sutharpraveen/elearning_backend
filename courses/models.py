@@ -71,13 +71,13 @@ class Lecture(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
 
-    # Original uploaded video
-    original_video = models.FileField(upload_to='lecture_videos/original/', blank=True, null=True)
+    # Direct MP4 video upload
+    video_file = models.FileField(upload_to='lecture_videos/', blank=True, null=True)
 
-    # HLS playlist and segments
+    # HLS playlist and segments (optional - for advanced streaming)
     hls_playlist = models.FileField(upload_to='lecture_videos/hls/', blank=True, null=True)
 
-    # Processed video qualities
+    # Processed video qualities (optional)
     video_1080p = models.FileField(upload_to='lecture_videos/1080p/', blank=True, null=True)
     video_720p = models.FileField(upload_to='lecture_videos/720p/', blank=True, null=True)
     video_480p = models.FileField(upload_to='lecture_videos/480p/', blank=True, null=True)
@@ -89,6 +89,7 @@ class Lecture(models.Model):
         ('processing', 'Processing'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
+        ('direct', 'Direct MP4'),  # New status for direct uploads
     ], default='pending')
 
     # Video metadata

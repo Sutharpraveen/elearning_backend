@@ -363,3 +363,4 @@ python manage.py runserver
 ```
 
 **Your Udemy-like e-learning platform is now ready! 🚀**
+

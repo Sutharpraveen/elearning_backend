@@ -34,3 +34,4 @@ mycli==1.27.0 # MySQL CLI
 # Environment Management
 pip-tools==7.3.0
 pipenv==2023.11.15
+
