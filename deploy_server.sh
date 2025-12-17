@@ -61,3 +61,4 @@ echo "🌐 Access your app at: http://your-server-ip:8000"
 echo "🔧 Admin panel at: http://your-server-ip:8000/admin/"
 echo "   Username: admin"
 echo "   Password: admin123"
+

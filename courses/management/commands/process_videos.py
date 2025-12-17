@@ -75,3 +75,4 @@ class Command(BaseCommand):
                 self.style.WARNING('Please specify --lecture-id or --all')
             )
 
+

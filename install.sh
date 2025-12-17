@@ -109,3 +109,4 @@ echo "3. For video processing, ensure ffmpeg is installed"
 echo ""
 echo "🎯 Your E-Learning platform is ready!"
 
+
