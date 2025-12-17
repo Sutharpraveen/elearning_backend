@@ -3,7 +3,7 @@ Django==5.1.5
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.1
 
-# Database
+# Database (MySQL)
 mysqlclient==2.2.4
 
 # Image Processing
@@ -13,7 +13,7 @@ Pillow==10.1.0
 django-cors-headers==4.3.1
 
 # Environment variables
-python-dotenv==1.0.0
+python-dotenv==1.1.0
 
 # Production server
 gunicorn==21.2.0
@@ -23,3 +23,7 @@ whitenoise==6.6.0
 
 # For better datetime handling
 pytz==2024.1
+
+# Payment Gateway
+razorpay==1.4.1
+
