@@ -1,0 +1,1792 @@
+{
+  "info": {
+    "name": "E-Learning Backend API Collection",
+    "description": "Complete API collection for Udemy-like E-Learning Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345678"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"username\": \"student123\",\n  \"password\": \"password123\",\n  \"confirm_password\": \"password123\",\n  \"role\": \"student\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "register",
+                ""
+              ]
+            },
+            "description": "Register a new user (student/instructor)"
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', response.tokens.access);",
+                  "    pm.collectionVariables.set('refresh_token', response.tokens.refresh);",
+                  "    pm.collectionVariables.set('user_id', response.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "login",
+                ""
+              ]
+            },
+            "description": "Login user and get JWT tokens"
+          }
+        },
+        {
+          "name": "Logout User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/logout/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "logout",
+                ""
+              ]
+            },
+            "description": "Logout user and blacklist refresh token"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/token/refresh/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "token",
+                "refresh",
+                ""
+              ]
+            },
+            "description": "Refresh access token using refresh token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/profile/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "profile",
+                ""
+              ]
+            },
+            "description": "Get current user profile"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Rahul\",\n  \"last_name\": \"Sharma\",\n  \"phone_number\": \"+91-9876543210\",\n  \"address\": \"Mumbai, India\",\n  \"bio\": \"Passionate learner and developer\",\n  \"headline\": \"Software Developer\",\n  \"expertise\": \"Python, Django, React\",\n  \"website\": \"https://rahulsharma.dev\",\n  \"social_links\": {\n    \"linkedin\": \"https://linkedin.com/in/rahulsharma\",\n    \"github\": \"https://github.com/rahulsharma\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/profile/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "profile",
+                ""
+              ]
+            },
+            "description": "Update user profile information"
+          }
+        },
+        {
+          "name": "Upload Profile Image",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "profile_image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/profile/image/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "profile",
+                "image",
+                ""
+              ]
+            },
+            "description": "Upload profile image (JPG, PNG, GIF, max 5MB)"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"oldpassword123\",\n  \"new_password\": \"newpassword123\",\n  \"confirm_password\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/profile/change-password/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "profile",
+                "change-password",
+                ""
+              ]
+            },
+            "description": "Change user password"
+          }
+        },
+        {
+          "name": "Get Profile Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/profile/statistics/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "profile",
+                "statistics",
+                ""
+              ]
+            },
+            "description": "Get user profile statistics (enrollments, completion, etc.)"
+          }
+        },
+        {
+          "name": "Get Public Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/profile/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "profile",
+                "1",
+                ""
+              ]
+            },
+            "description": "Get public profile of any user (replace 1 with user ID)"
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/profile/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "profile",
+                ""
+              ]
+            },
+            "description": "Delete user account permanently"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/categories/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                ""
+              ]
+            },
+            "description": "Get all course categories"
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Web Development\",\n  \"description\": \"Learn web development technologies\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/categories/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                ""
+              ]
+            },
+            "description": "Create new category (admin/instructor only)"
+          }
+        },
+        {
+          "name": "Get Category Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/categories/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "1",
+                ""
+              ]
+            },
+            "description": "Get specific category details"
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Web Development Updated\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/categories/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "1",
+                ""
+              ]
+            },
+            "description": "Update category (admin/instructor only)"
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/categories/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "1",
+                ""
+              ]
+            },
+            "description": "Delete category (admin only)"
+          }
+        },
+        {
+          "name": "Get Courses by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/courses/courses/?category=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "courses",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get courses filtered by category"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Courses",
+      "item": [
+        {
+          "name": "List Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/courses/courses/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "courses",
+                ""
+              ]
+            },
+            "description": "Get all published courses"
+          }
+        },
+        {
+          "name": "Search Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/courses/courses/?search=python",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "courses",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "python"
+                }
+              ]
+            },
+            "description": "Search courses by title, description, level, or language"
+          }
+        },
+        {
+          "name": "Create Course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Complete Python Bootcamp",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Learn Python from beginner to advanced level",
+                  "type": "text"
+                },
+                {
+                  "key": "learning_objectives",
+                  "value": "Master Python programming\nBuild real-world projects\nLearn best practices",
+                  "type": "text"
+                },
+                {
+                  "key": "requirements",
+                  "value": "Basic computer knowledge\nNo prior programming experience",
+                  "type": "text"
+                },
+                {
+                  "key": "target_audience",
+                  "value": "Beginners who want to learn Python\nStudents\nProfessionals",
+                  "type": "text"
+                },
+                {
+                  "key": "level",
+                  "value": "Beginner",
+                  "type": "text"
+                },
+                {
+                  "key": "original_price",
+                  "value": "999.00",
+                  "type": "text"
+                },
+                {
+                  "key": "discounted_price",
+                  "value": "799.00",
+                  "type": "text"
+                },
+                {
+                  "key": "language",
+                  "value": "English",
+                  "type": "text"
+                },
+                {
+                  "key": "duration",
+                  "value": "20.5",
+                  "type": "text"
+                },
+                {
+                  "key": "category_id",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "thumbnail",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "intro_video",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/courses/courses/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "courses",
+                ""
+              ]
+            },
+            "description": "Create new course (instructor only)"
+          }
+        },
+        {
+          "name": "Get Course Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/courses/courses/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "courses",
+                "1",
+                ""
+              ]
+            },
+            "description": "Get detailed course information"
+          }
+        },
+        {
+          "name": "Update Course",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Updated Python Bootcamp",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Updated course description",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/courses/courses/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "courses",
+                "1",
+                ""
+              ]
+            },
+            "description": "Update course details (instructor only)"
+          }
+        },
+        {
+          "name": "Delete Course",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/courses/courses/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "courses",
+                "1",
+                ""
+              ]
+            },
+            "description": "Delete course (instructor only)"
+          }
+        },
+        {
+          "name": "Enroll in Course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/courses/courses/1/enroll/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "courses",
+                "1",
+                "enroll",
+                ""
+              ]
+            },
+            "description": "Enroll in a course (after payment)"
+          }
+        },
+        {
+          "name": "Add Course Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Excellent course! Very detailed and well explained.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/courses/courses/1/review/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "courses",
+                "1",
+                "review",
+                ""
+              ]
+            },
+            "description": "Add review and rating for course"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Course Content",
+      "item": [
+        {
+          "name": "Get Course Sections",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/courses/1/sections/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "1",
+                "sections",
+                ""
+              ]
+            },
+            "description": "Get all sections of an enrolled course"
+          }
+        },
+        {
+          "name": "Create Section",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Introduction to Python\",\n  \"description\": \"Basic concepts and setup\",\n  \"order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/courses/1/sections/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "1",
+                "sections",
+                ""
+              ]
+            },
+            "description": "Create new section in course (instructor only)"
+          }
+        },
+        {
+          "name": "Get Section Lectures",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/courses/1/sections/1/lectures/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "1",
+                "sections",
+                "1",
+                "lectures",
+                ""
+              ]
+            },
+            "description": "Get all lectures in a section"
+          }
+        },
+        {
+          "name": "Create Lecture",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Installing Python",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "How to install Python on different operating systems",
+                  "type": "text"
+                },
+                {
+                  "key": "is_preview",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "order",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "original_video",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/courses/1/sections/1/lectures/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "1",
+                "sections",
+                "1",
+                "lectures",
+                ""
+              ]
+            },
+            "description": "Create new lecture with video (instructor only)"
+          }
+        },
+        {
+          "name": "Get Lecture Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/courses/1/sections/1/lectures/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "1",
+                "sections",
+                "1",
+                "lectures",
+                "1",
+                ""
+              ]
+            },
+            "description": "Get lecture details with video URLs"
+          }
+        },
+        {
+          "name": "Update Lecture Progress",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"completed\": true,\n  \"last_position\": 300\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/progress/1/update_progress/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "progress",
+                "1",
+                "update_progress",
+                ""
+              ]
+            },
+            "description": "Update video watching progress"
+          }
+        },
+        {
+          "name": "Get User Enrollments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/courses/enrollments/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "enrollments",
+                ""
+              ]
+            },
+            "description": "Get user's enrolled courses"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shopping Cart",
+      "item": [
+        {
+          "name": "Get Cart Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/shopping/cart/get_cart_summary/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "cart",
+                "get_cart_summary",
+                ""
+              ]
+            },
+            "description": "Get current cart contents and pricing"
+          }
+        },
+        {
+          "name": "Add to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shopping/cart/add/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "cart",
+                "add",
+                ""
+              ]
+            },
+            "description": "Add course to shopping cart"
+          }
+        },
+        {
+          "name": "Remove from Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shopping/cart/remove/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "cart",
+                "remove",
+                ""
+              ]
+            },
+            "description": "Remove course from cart"
+          }
+        },
+        {
+          "name": "Save for Later",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shopping/cart/save_for_later/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "cart",
+                "save_for_later",
+                ""
+              ]
+            },
+            "description": "Move item to saved for later"
+          }
+        },
+        {
+          "name": "Move to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shopping/cart/move_to_cart/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "cart",
+                "move_to_cart",
+                ""
+              ]
+            },
+            "description": "Move saved item back to cart"
+          }
+        },
+        {
+          "name": "Apply Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coupon_code\": \"SAVE20\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shopping/cart/apply_coupon/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "cart",
+                "apply_coupon",
+                ""
+              ]
+            },
+            "description": "Apply discount coupon to cart"
+          }
+        },
+        {
+          "name": "Remove Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/shopping/cart/remove_coupon/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "cart",
+                "remove_coupon",
+                ""
+              ]
+            },
+            "description": "Remove applied coupon"
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/shopping/cart/clear_cart/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "cart",
+                "clear_cart",
+                ""
+              ]
+            },
+            "description": "Remove all items from cart"
+          }
+        },
+        {
+          "name": "Get Saved Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/shopping/cart/get_saved_items/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "cart",
+                "get_saved_items",
+                ""
+              ]
+            },
+            "description": "Get items saved for later"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wishlist",
+      "item": [
+        {
+          "name": "Get Wishlist",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/shopping/wishlist/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "wishlist",
+                ""
+              ]
+            },
+            "description": "Get user's wishlist"
+          }
+        },
+        {
+          "name": "Add to Wishlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shopping/wishlist/add_course/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "wishlist",
+                "add_course",
+                ""
+              ]
+            },
+            "description": "Add course to wishlist"
+          }
+        },
+        {
+          "name": "Remove from Wishlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shopping/wishlist/remove_course/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "wishlist",
+                "remove_course",
+                ""
+              ]
+            },
+            "description": "Remove course from wishlist"
+          }
+        },
+        {
+          "name": "Move to Cart from Wishlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shopping/wishlist/move_to_cart/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "wishlist",
+                "move_to_cart",
+                ""
+              ]
+            },
+            "description": "Move course from wishlist to cart"
+          }
+        },
+        {
+          "name": "Check Course Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/shopping/course-status/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "shopping",
+                "course-status",
+                "1",
+                ""
+              ]
+            },
+            "description": "Check if course is in cart or wishlist"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 1,\n  \"amount\": 799.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/single/create/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "single",
+                "create",
+                ""
+              ]
+            },
+            "description": "Create Razorpay payment order for single course"
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_xyz123\",\n  \"razorpay_payment_id\": \"pay_abc456\",\n  \"razorpay_signature\": \"signature_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/single/verify/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "single",
+                "verify",
+                ""
+              ]
+            },
+            "description": "Verify payment and enroll user in course"
+          }
+        },
+        {
+          "name": "Create Multi-Course Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_ids\": [1, 2, 3],\n  \"amount\": 1999.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/multi/create/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "multi",
+                "create",
+                ""
+              ]
+            },
+            "description": "Create payment order for multiple courses"
+          }
+        },
+        {
+          "name": "Verify Multi-Course Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_xyz123\",\n  \"razorpay_payment_id\": \"pay_abc456\",\n  \"razorpay_signature\": \"signature_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/multi/verify/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "multi",
+                "verify",
+                ""
+              ]
+            },
+            "description": "Verify multi-course payment and enroll in all courses"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Core Features",
+      "item": [
+        {
+          "name": "Get Slider Images",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/core/sliders/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "core",
+                "sliders",
+                ""
+              ]
+            },
+            "description": "Get active slider/banner images"
+          }
+        },
+        {
+          "name": "Get App Versions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/core/app-versions/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "core",
+                "app-versions",
+                ""
+              ]
+            },
+            "description": "Get latest app versions for mobile apps"
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health",
+                ""
+              ]
+            },
+            "description": "Server health check endpoint"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Operations",
+      "item": [
+        {
+          "name": "Django Admin Login",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                ""
+              ]
+            },
+            "description": "Access Django admin panel (requires superuser login)"
+          }
+        },
+        {
+          "name": "Process Videos (Management Command)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"python manage.py process_videos --all\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/run-command/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "run-command",
+                ""
+              ]
+            },
+            "description": "Run video processing management command (admin only)"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Add any pre-request scripts here",
+          "// For example, auto-refresh token if needed"
+        ]
+      }
+    }
+  ]
+}
+
+

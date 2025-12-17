@@ -1,0 +1,38 @@
+# ===========================================
+# Development & Testing Dependencies
+# ===========================================
+
+# Testing
+pytest==7.4.3
+pytest-django==4.7.0
+pytest-cov==4.1.0
+factory-boy==3.3.0
+
+# Code Quality
+black==23.12.1
+flake8==6.1.0
+isort==5.13.2
+mypy==1.7.1
+
+# Documentation
+sphinx==7.2.6
+sphinx-rtd-theme==2.0.0
+
+# Development Tools
+django-extensions==3.2.3
+django-debug-toolbar==4.2.0
+Werkzeug==3.0.1
+
+# API Testing
+httpie==3.2.2
+postman-runner==1.0.0
+
+# Database Tools
+pgcli==4.0.1  # PostgreSQL CLI (if using PostgreSQL)
+mycli==1.27.0 # MySQL CLI
+
+# Environment Management
+pip-tools==7.3.0
+pipenv==2023.11.15
+
+

@@ -194,6 +194,120 @@ class UserPublicProfileView(APIView):
             return Response(data)
         except CustomUser.DoesNotExist:
             return Response(
-                {"error": "User not found"}, 
+                {"error": "User not found"},
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """Change user password"""
+        try:
+            old_password = request.data.get('old_password')
+            new_password = request.data.get('new_password')
+            confirm_password = request.data.get('confirm_password')
+
+            if not all([old_password, new_password, confirm_password]):
+                return Response(
+                    {'error': 'All password fields are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if new_password != confirm_password:
+                return Response(
+                    {'error': 'New passwords do not match'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            user = request.user
+
+            # Check if old password is correct
+            if not user.check_password(old_password):
+                return Response(
+                    {'error': 'Current password is incorrect'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Validate new password strength
+            if len(new_password) < 8:
+                return Response(
+                    {'error': 'Password must be at least 8 characters long'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Set new password
+            user.set_password(new_password)
+            user.save()
+
+            return Response({
+                'message': 'Password changed successfully'
+            })
+
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class ProfileStatisticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Get user profile statistics"""
+        try:
+            user = request.user
+            from courses.models import Enrollment, Course
+            from payments.models import Payment
+
+            # Enrollment statistics
+            enrollments = Enrollment.objects.filter(user=user)
+            total_enrollments = enrollments.count()
+            completed_courses = enrollments.filter(completed=True).count()
+
+            # Course statistics (if instructor)
+            created_courses = 0
+            total_students = 0
+            if user.role == 'instructor':
+                created_courses = Course.objects.filter(instructor=user).count()
+                total_students = Enrollment.objects.filter(course__instructor=user).count()
+
+            # Payment statistics
+            total_payments = Payment.objects.filter(user=user, status='completed').count()
+
+            # Profile completion percentage
+            profile_fields = [
+                user.first_name, user.last_name, user.phone_number,
+                user.address, user.bio, user.headline, user.expertise,
+                user.website, user.profile_image
+            ]
+            filled_fields = sum(1 for field in profile_fields if field)
+            profile_completion = int((filled_fields / len(profile_fields)) * 100)
+
+            return Response({
+                'enrollment_stats': {
+                    'total_enrollments': total_enrollments,
+                    'completed_courses': completed_courses,
+                    'completion_rate': round((completed_courses / total_enrollments * 100) if total_enrollments > 0 else 0, 1)
+                },
+                'instructor_stats': {
+                    'created_courses': created_courses,
+                    'total_students': total_students
+                },
+                'payment_stats': {
+                    'total_payments': total_payments
+                },
+                'profile_completion': {
+                    'percentage': profile_completion,
+                    'filled_fields': filled_fields,
+                    'total_fields': len(profile_fields)
+                }
+            })
+
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

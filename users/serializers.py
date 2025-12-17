@@ -53,9 +53,41 @@ class UserProfileSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 data['profile_image'] = request.build_absolute_uri(instance.profile_image.url)
-        
+
         # Add full name
         data['full_name'] = f"{instance.first_name} {instance.last_name}".strip() or instance.username
+
+        # Add profile completion percentage
+        profile_fields = [
+            instance.first_name, instance.last_name, instance.phone_number,
+            instance.address, instance.bio, instance.headline, instance.expertise,
+            instance.website, instance.profile_image
+        ]
+        filled_fields = sum(1 for field in profile_fields if field)
+        data['profile_completion'] = {
+            'percentage': int((filled_fields / len(profile_fields)) * 100),
+            'filled_fields': filled_fields,
+            'total_fields': len(profile_fields)
+        }
+
+        # Add basic stats for instructors
+        if instance.role == 'instructor':
+            from courses.models import Course, Enrollment
+            data['instructor_stats'] = {
+                'total_courses': Course.objects.filter(instructor=instance).count(),
+                'total_students': Enrollment.objects.filter(course__instructor=instance).count()
+            }
+        else:
+            # Add basic stats for students
+            from courses.models import Enrollment
+            from payments.models import Payment
+            enrollments = Enrollment.objects.filter(user=instance)
+            data['student_stats'] = {
+                'total_enrollments': enrollments.count(),
+                'completed_courses': enrollments.filter(completed=True).count(),
+                'total_payments': Payment.objects.filter(user=instance, status='completed').count()
+            }
+
         return data
 
     def validate_social_links(self, value):

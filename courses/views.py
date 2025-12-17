@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, BasePermission
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils.text import slugify
 from .models import Course, Section, Lecture, Resource, Enrollment, Progress, Review
@@ -11,6 +11,32 @@ from .serializers import (
     ResourceSerializer, EnrollmentSerializer, ProgressSerializer, ReviewSerializer
 )
 from django.utils import timezone
+from .video_utils import process_lecture_video_universal
+import threading
+
+
+class IsEnrolled(BasePermission):
+    """
+    Custom permission to only allow enrolled users to access course content
+    """
+    def has_permission(self, request, view):
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            return False
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        # For Section, Lecture, Resource objects, check enrollment
+        if hasattr(obj, 'course'):
+            course = obj.course
+        elif hasattr(obj, 'section') and hasattr(obj.section, 'course'):
+            course = obj.section.course
+        elif hasattr(obj, 'lecture') and hasattr(obj.lecture, 'section') and hasattr(obj.lecture.section, 'course'):
+            course = obj.lecture.section.course
+        else:
+            return False
+
+        return Enrollment.objects.filter(user=request.user, course=course).exists()
 
 # Create your views here.
 
@@ -107,7 +133,7 @@ class CourseViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=False, methods=['get'], url_path='by-category/(?P<category_id>\d+)')
+    @action(detail=False, methods=['get'], url_path='by-category/(?P<category_id>\\d+)')
     def by_category(self, request, category_id=None):
         courses = self.queryset.filter(category_id=category_id, is_published=True)
         serializer = self.get_serializer(courses, many=True)
@@ -116,7 +142,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 class SectionViewSet(viewsets.ModelViewSet):
     serializer_class = SectionSerializer
-    permission_classes = [IsAuthenticated]  # Requires authentication for all actions
+    permission_classes = [IsAuthenticated, IsEnrolled]  # Requires authentication and enrollment
 
     def get_queryset(self):
         return Section.objects.filter(course_id=self.kwargs['course_pk'])
@@ -129,7 +155,7 @@ class SectionViewSet(viewsets.ModelViewSet):
 
 class LectureViewSet(viewsets.ModelViewSet):
     serializer_class = LectureSerializer
-    permission_classes = [IsAuthenticated]  # Requires authentication for all actions
+    permission_classes = [IsAuthenticated, IsEnrolled]  # Requires authentication and enrollment
     parser_classes = (MultiPartParser, FormParser)
 
     def get_queryset(self):
@@ -138,9 +164,42 @@ class LectureViewSet(viewsets.ModelViewSet):
             section__course_id=self.kwargs['course_pk']
         )
 
+    def perform_create(self, serializer):
+        lecture = serializer.save()
+
+        # If any video was uploaded, start universal processing
+        if (hasattr(lecture, 'video_file') and lecture.video_file) or \
+           (hasattr(lecture, 'original_video') and lecture.original_video):
+            # Start universal video processing in background thread
+            thread = threading.Thread(target=process_lecture_video_universal, args=(lecture.id,))
+            thread.daemon = True
+            thread.start()
+            print(f"Universal video processing started for lecture: {lecture.title}")
+        else:
+            # No video uploaded, mark as ready
+            lecture.processing_status = 'ready'
+            lecture.save()
+
+    def perform_update(self, serializer):
+        lecture = serializer.save()
+
+        # If any video was uploaded/updated, start universal processing
+        if ((hasattr(lecture, 'video_file') and lecture.video_file) or \
+            (hasattr(lecture, 'original_video') and lecture.original_video)) and \
+           lecture.processing_status != 'processing':
+
+            # Start universal video processing in background thread
+            thread = threading.Thread(target=process_lecture_video_universal, args=(lecture.id,))
+            thread.daemon = True
+            thread.start()
+            print(f"Universal video processing started for updated lecture: {lecture.title}")
+        else:
+            # No video change, keep current status
+            pass
+
 class ResourceViewSet(viewsets.ModelViewSet):
     serializer_class = ResourceSerializer
-    permission_classes = [IsAuthenticated]  # Requires authentication for all actions
+    permission_classes = [IsAuthenticated, IsEnrolled]  # Requires authentication and enrollment
     parser_classes = (MultiPartParser, FormParser)
 
     def get_queryset(self):
@@ -151,7 +210,7 @@ class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]  # Requires authentication for all actions
 
     def get_queryset(self):
-        return Enrollment.objects.filter(student=self.request.user)
+        return Enrollment.objects.filter(user=self.request.user)
 
 class ProgressViewSet(viewsets.ModelViewSet):
     serializer_class = ProgressSerializer
