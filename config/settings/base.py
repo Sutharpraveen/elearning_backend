@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'users',
     'categories',
     'courses',
+    'certificates',
     'core',
     'shopping',
     'payments',

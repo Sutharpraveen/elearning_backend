@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Verification - Invalid</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: #dc3545;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .error-icon {
+            font-size: 64px;
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+
+        .certificate-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .value {
+            color: #666;
+        }
+
+        .error-details {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8d7da;
+            border-radius: 10px;
+            border-left: 5px solid #dc3545;
+        }
+
+        .error-details h3 {
+            color: #721c24;
+            margin-top: 0;
+        }
+
+        .contact-info {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff3cd;
+            border-radius: 10px;
+            border-left: 5px solid #ffc107;
+        }
+
+        .contact-info h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-icon">❌</div>
+        <div class="status-badge">✗ Certificate Invalid</div>
+
+        <h1>Certificate Verification Failed</h1>
+
+        {% if certificate %}
+        <div class="certificate-info">
+            <div class="info-row">
+                <span class="label">Certificate Number:</span>
+                <span class="value">{{ certificate.certificate_number }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Student Name:</span>
+                <span class="value">{{ certificate.student.get_full_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Course:</span>
+                <span class="value">{{ certificate.course.title }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Status:</span>
+                <span class="value">{{ certificate.get_status_display }}</span>
+            </div>
+            {% if certificate.issued_at %}
+            <div class="info-row">
+                <span class="label">Issued Date:</span>
+                <span class="value">{{ certificate.issued_at|date:"M d, Y" }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="error-details">
+            <h3>Verification Error</h3>
+            <p>{{ error }}</p>
+            {% if certificate_id %}
+            <p><strong>Searched Certificate ID:</strong> {{ certificate_id }}</p>
+            {% endif %}
+        </div>
+
+        <div class="contact-info">
+            <h3>Need Help?</h3>
+            <p>If you believe this is an error, please contact our support team with the certificate details.</p>
+            <p><strong>Certificate ID:</strong> {{ certificate_id|default:"N/A" }}</p>
+        </div>
+    </div>
+</body>
+</html>
+
+

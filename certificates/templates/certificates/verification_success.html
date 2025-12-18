@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Verification - Valid</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .certificate-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .value {
+            color: #666;
+        }
+
+        .verification-details {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e8f5e8;
+            border-radius: 10px;
+            border-left: 5px solid #28a745;
+        }
+
+        .verification-details h3 {
+            color: #28a745;
+            margin-top: 0;
+        }
+
+        .certificate-link {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .certificate-link:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="status-badge">✓ Certificate Verified</div>
+
+        <h1>Certificate Verification</h1>
+        <p>This certificate has been successfully verified and is authentic.</p>
+
+        <div class="certificate-info">
+            <div class="info-row">
+                <span class="label">Certificate Number:</span>
+                <span class="value">{{ certificate.certificate_number }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Student Name:</span>
+                <span class="value">{{ student_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Course:</span>
+                <span class="value">{{ course_title }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Issued Date:</span>
+                <span class="value">{{ issued_date }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Grade:</span>
+                <span class="value">{{ certificate.grade|default:"N/A" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Completion:</span>
+                <span class="value">{{ certificate.completion_percentage }}%</span>
+            </div>
+        </div>
+
+        <div class="verification-details">
+            <h3>Verification Details</h3>
+            <p><strong>Certificate ID:</strong> {{ certificate.certificate_id }}</p>
+            <p><strong>Status:</strong> {{ certificate.get_status_display }}</p>
+            <p><strong>Verification URL:</strong> {{ certificate.verification_url }}</p>
+            <p><em>This certificate was issued by our platform and is valid.</em></p>
+        </div>
+
+        {% if certificate.certificate_file %}
+        <a href="{{ certificate.certificate_file.url }}" class="certificate-link" target="_blank">
+            📄 View Certificate
+        </a>
+        {% endif %}
+    </div>
+</body>
+</html>
+
+
