@@ -142,6 +142,43 @@ class Enrollment(models.Model):
     def __str__(self):
         return f"{self.user.email} enrolled in {self.course.title}"
 
+    @property
+    def progress_percentage(self):
+        """Calculate overall course progress percentage"""
+        # Option 1: Time-based calculation (current)
+        # Option 2: Lecture-based calculation (simpler)
+
+        # Use lecture-based calculation for clearer progress indicators
+        total_lectures = sum(section.lectures.count() for section in self.course.sections.all())
+        if total_lectures == 0:
+            return 0.0
+
+        completed_lectures = self.progress.filter(completed=True).count()
+        percentage = (completed_lectures / total_lectures) * 100
+        return round(min(percentage, 100.0), 1)
+
+    @property
+    def progress_percentage_time_based(self):
+        """Alternative: Calculate progress based on time watched"""
+        total_duration = sum(
+            lecture.duration for section in self.course.sections.all()
+            for lecture in section.lectures.all()
+        )
+
+        if total_duration == 0:
+            return 0.0
+
+        watched_duration = 0
+        for progress in self.progress.all():
+            if progress.completed:
+                watched_duration += progress.lecture.duration
+            else:
+                watched_time = min(progress.last_position / 60, progress.lecture.duration)
+                watched_duration += watched_time
+
+        percentage = (watched_duration / total_duration) * 100
+        return round(min(percentage, 100.0), 1)
+
 class Progress(models.Model):
     enrollment = models.ForeignKey(Enrollment, related_name='progress', on_delete=models.CASCADE)
     lecture = models.ForeignKey(Lecture, related_name='progress', on_delete=models.CASCADE)

@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .serializers import UserRegistrationSerializer, LoginSerializer, UserProfileSerializer, UserProfileUpdateSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+from django.utils import timezone
 from django.contrib.auth import authenticate
 from .models import CustomUser
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -47,18 +49,53 @@ class LoginView(APIView):
             email = serializer.validated_data['email']
             password = serializer.validated_data['password']
             user = authenticate(username=email, password=password)
-            
+
             if user:
+                # BLACKLIST ALL EXISTING TOKENS - SINGLE DEVICE LOGIN
+                # This ensures only one active session per user
+                try:
+                    # Blacklist all outstanding refresh tokens for this user
+                    user_tokens = OutstandingToken.objects.filter(user=user)
+                    for token in user_tokens:
+                        try:
+                            # Create blacklist entry for each token
+                            from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
+                            BlacklistedToken.objects.get_or_create(token=token)
+                        except:
+                            pass  # Token might already be blacklisted
+
+                    # Also try to blacklist by token value if needed
+                    refresh_tokens = RefreshToken.objects.filter(user=user)
+                    for refresh_token in refresh_tokens:
+                        try:
+                            refresh_token.blacklist()
+                        except:
+                            pass  # Token might already be blacklisted
+
+                except Exception as e:
+                    # Log the error but don't fail the login
+                    logger.warning(f"Error blacklisting old tokens for user {user.email}: {str(e)}")
+
+                # Generate new tokens
                 refresh = RefreshToken.for_user(user)
+                access_token = refresh.access_token
+
+                # Store current session token JTI for single device tracking
+                user.current_session_token = access_token['jti']
+                user.last_login = timezone.now()
+                user.save(update_fields=['current_session_token', 'last_login'])
+
                 return Response({
+                    'status': 'success',
+                    'message': 'Login successful. All other devices have been logged out.',
                     'tokens': {
                         'refresh': str(refresh),
-                        'access': str(refresh.access_token),
+                        'access': str(access_token),
                     },
                     'user': UserProfileSerializer(user).data
                 })
             return Response(
-                {'error': 'Invalid credentials'}, 
+                {'error': 'Invalid credentials'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -2,7 +2,8 @@ from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from .views import (
     CourseViewSet, SectionViewSet, LectureViewSet,
-    ResourceViewSet, EnrollmentViewSet, ProgressViewSet
+    ResourceViewSet, EnrollmentViewSet, ProgressViewSet,
+    global_search, home_page_courses, top_rated_courses, rating_statistics
 )
 
 # Main router
@@ -14,6 +15,16 @@ router.register('progress', ProgressViewSet, basename='progress')
 urlpatterns = [
     # Main routes
     path('', include(router.urls)),
+
+    # Search endpoint
+    path('search/', global_search, name='global-search'),
+
+    # Home page courses endpoint
+    path('home/', home_page_courses, name='home-page-courses'),
+
+    # Rating and review endpoints
+    path('top-rated/', top_rated_courses, name='top-rated-courses'),
+    path('rating-statistics/', rating_statistics, name='rating-statistics'),
 
     # Nested routes using re_path for regex matching
     re_path(r'^(?P<course_pk>\d+)/sections/$', SectionViewSet.as_view({

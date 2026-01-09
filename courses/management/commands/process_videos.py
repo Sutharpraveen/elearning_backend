@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from courses.models import Lecture
-from courses.video_utils import process_lecture_video
+from courses.video_utils import process_lecture_video_universal
 
 class Command(BaseCommand):
     help = 'Process videos for lectures that are pending or failed'
@@ -24,7 +24,7 @@ class Command(BaseCommand):
                 lecture = Lecture.objects.get(id=options['lecture_id'])
                 self.stdout.write(f'Processing video for lecture: {lecture.title}')
 
-                if process_lecture_video(lecture.id):
+                if process_lecture_video_universal(lecture.id):
                     self.stdout.write(
                         self.style.SUCCESS(f'Successfully processed video for lecture {lecture.id}')
                     )
@@ -41,7 +41,7 @@ class Command(BaseCommand):
             # Process all pending/failed videos
             lectures = Lecture.objects.filter(
                 processing_status__in=['pending', 'failed']
-            ).exclude(original_video='')
+            ).exclude(video_file__isnull=True).exclude(video_file='')
 
             if not lectures:
                 self.stdout.write('No videos to process')
@@ -55,7 +55,7 @@ class Command(BaseCommand):
             for lecture in lectures:
                 self.stdout.write(f'Processing: {lecture.title} (ID: {lecture.id})')
 
-                if process_lecture_video(lecture.id):
+                if process_lecture_video_universal(lecture.id):
                     success_count += 1
                     self.stdout.write(
                         self.style.SUCCESS(f'✓ Processed: {lecture.title}')
@@ -74,6 +74,8 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.WARNING('Please specify --lecture-id or --all')
             )
+
+
 
 
 

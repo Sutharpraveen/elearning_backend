@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from courses.models import Course
 from django.utils import timezone
 from django.conf import settings
+from decimal import Decimal
 
 User = get_user_model()
 
@@ -67,32 +68,40 @@ class Cart(models.Model):
 
     @property
     def subtotal(self):
-        return sum(item.price_at_time_of_adding for item in self.items.all())
+        return sum(item.price_at_time_of_adding for item in self.items.filter(is_saved_for_later=False)) or Decimal('0')
 
     @property
     def item_discount_amount(self):
         """Discount from individual item prices"""
-        return sum(item.savings for item in self.items.all())
+        return sum(item.savings for item in self.items.filter(is_saved_for_later=False)) or Decimal('0')
 
     @property
     def coupon_discount_amount(self):
         """Discount from coupon"""
         if self.coupon_code and self.coupon_discount > 0:
-            return (self.subtotal * self.coupon_discount) / 100
-        return 0
+            try:
+                coupon = Coupon.objects.get(code=self.coupon_code)
+                discount_amount = (Decimal(str(self.subtotal)) * Decimal(str(self.coupon_discount))) / Decimal('100')
+                # Apply maximum discount limit if set
+                if coupon.max_discount_amount and discount_amount > coupon.max_discount_amount:
+                    return coupon.max_discount_amount
+                return discount_amount
+            except Coupon.DoesNotExist:
+                return Decimal('0')
+        return Decimal('0')
 
     @property
     def total_discount_amount(self):
         """Total discount including item and coupon discounts"""
-        return self.item_discount_amount + self.coupon_discount_amount
+        return Decimal(str(self.item_discount_amount)) + Decimal(str(self.coupon_discount_amount))
 
     @property
     def total_price(self):
-        return self.subtotal - self.total_discount_amount
+        return Decimal(str(self.subtotal)) - Decimal(str(self.coupon_discount_amount))
 
     @property
     def total_items(self):
-        return self.items.count()
+        return self.items.filter(is_saved_for_later=False).count()
 
     class Meta:
         ordering = ['-created_at']
