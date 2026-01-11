@@ -5,18 +5,100 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .serializers import UserRegistrationSerializer, LoginSerializer, UserProfileSerializer, UserProfileUpdateSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+from django.utils import timezone
 from django.contrib.auth import authenticate
 from .models import CustomUser
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.conf import settings
 import json
+from PIL import Image, ImageDraw
+import io
 import logging
 from rest_framework import viewsets
 from rest_framework.decorators import action
 import os
 
 logger = logging.getLogger(__name__)
+
+def optimize_and_resize_image(image_file, max_size=(500, 500), quality=85):
+    """
+    Optimize and resize uploaded image to standard dimensions
+    """
+    try:
+        # Open the image
+        image = Image.open(image_file)
+
+        # Convert to RGB if necessary (for JPEG compatibility)
+        if image.mode in ('RGBA', 'P'):
+            image = image.convert('RGB')
+
+        # Resize image while maintaining aspect ratio
+        image.thumbnail(max_size, Image.Resampling.LANCZOS)
+
+        # Create a square canvas with white background
+        square_size = max(image.size)
+        square_image = Image.new('RGB', (square_size, square_size), (255, 255, 255))
+
+        # Center the image on the square canvas
+        x = (square_size - image.size[0]) // 2
+        y = (square_size - image.size[1]) // 2
+        square_image.paste(image, (x, y))
+
+        # Save optimized image to buffer
+        buffer = io.BytesIO()
+        square_image.save(buffer, format='JPEG', quality=quality, optimize=True)
+        buffer.seek(0)
+
+        return buffer
+    except Exception as e:
+        print(f"Error optimizing image: {e}")
+        return None
+
+def create_circular_mask(image_file, size=(200, 200)):
+    """
+    Create a circular mask version of the uploaded image
+    """
+    try:
+        # Open the image
+        image = Image.open(image_file)
+
+        # Convert to RGBA if not already
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+
+        # Resize to standard size first
+        image.thumbnail(size, Image.Resampling.LANCZOS)
+
+        # Create square canvas
+        square_size = max(image.size)
+        square_image = Image.new('RGBA', (square_size, square_size), (0, 0, 0, 0))
+
+        # Center the image
+        x = (square_size - image.size[0]) // 2
+        y = (square_size - image.size[1]) // 2
+        square_image.paste(image, (x, y))
+
+        # Create circular mask
+        mask = Image.new('L', (square_size, square_size), 0)
+        draw = ImageDraw.Draw(mask)
+        draw.ellipse((0, 0, square_size, square_size), fill=255)
+
+        # Apply circular mask
+        circular_image = Image.new('RGBA', (square_size, square_size), (0, 0, 0, 0))
+        circular_image.paste(square_image, mask=mask)
+
+        # Save to BytesIO buffer
+        buffer = io.BytesIO()
+        circular_image.save(buffer, format='PNG', optimize=True)
+        buffer.seek(0)
+
+        return buffer
+    except Exception as e:
+        print(f"Error creating circular mask: {e}")
+        return None
 
 # Create your views here.
 
@@ -47,18 +129,53 @@ class LoginView(APIView):
             email = serializer.validated_data['email']
             password = serializer.validated_data['password']
             user = authenticate(username=email, password=password)
-            
+
             if user:
+                # BLACKLIST ALL EXISTING TOKENS - SINGLE DEVICE LOGIN
+                # This ensures only one active session per user
+                try:
+                    # Blacklist all outstanding refresh tokens for this user
+                    user_tokens = OutstandingToken.objects.filter(user=user)
+                    for token in user_tokens:
+                        try:
+                            # Create blacklist entry for each token
+                            from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
+                            BlacklistedToken.objects.get_or_create(token=token)
+                        except:
+                            pass  # Token might already be blacklisted
+
+                    # Also try to blacklist by token value if needed
+                    refresh_tokens = RefreshToken.objects.filter(user=user)
+                    for refresh_token in refresh_tokens:
+                        try:
+                            refresh_token.blacklist()
+                        except:
+                            pass  # Token might already be blacklisted
+
+                except Exception as e:
+                    # Log the error but don't fail the login
+                    logger.warning(f"Error blacklisting old tokens for user {user.email}: {str(e)}")
+
+                # Generate new tokens
                 refresh = RefreshToken.for_user(user)
+                access_token = refresh.access_token
+
+                # Store current session token JTI for single device tracking
+                user.current_session_token = access_token['jti']
+                user.last_login = timezone.now()
+                user.save(update_fields=['current_session_token', 'last_login'])
+
                 return Response({
+                    'status': 'success',
+                    'message': 'Login successful. All other devices have been logged out.',
                     'tokens': {
                         'refresh': str(refresh),
-                        'access': str(refresh.access_token),
+                        'access': str(access_token),
                     },
                     'user': UserProfileSerializer(user).data
                 })
             return Response(
-                {'error': 'Invalid credentials'}, 
+                {'error': 'Invalid credentials'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -136,10 +253,10 @@ class ProfileImageUpdateView(APIView):
 
             image = request.FILES['profile_image']
             
-            # Validate file size (5MB max)
-            if image.size > 5 * 1024 * 1024:
+            # Validate file size (10MB max before optimization)
+            if image.size > 10 * 1024 * 1024:
                 return Response(
-                    {'error': 'Image size should not exceed 5MB'},
+                    {'error': 'Image size should not exceed 10MB'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -153,19 +270,69 @@ class ProfileImageUpdateView(APIView):
 
             user = request.user
 
-            # Delete old image if exists
+            # Delete old images if they exist
             if user.profile_image:
                 try:
+                    # Delete original image
                     if os.path.exists(user.profile_image.path):
                         os.remove(user.profile_image.path)
-                except Exception as e:
-                    print(f"Error deleting old image: {e}")
 
-            # Save new image
-            file_name = f"profile_{user.id}_{image.name}"
-            file_path = f'user_profiles/{user.id}/{file_name}'
-            user.profile_image = file_path
-            user.save()
+                    # Delete circular mask if it exists
+                    circular_path = user.profile_image.path.replace('.jpg', '_circ_mask.png').replace('.jpeg', '_circ_mask.png').replace('.png', '_circ_mask.png').replace('.gif', '_circ_mask.png')
+                    if os.path.exists(circular_path):
+                        os.remove(circular_path)
+                except Exception as e:
+                    print(f"Error deleting old images: {e}")
+
+            # Create directory if it doesn't exist
+            user_dir = os.path.join('user_profiles', str(user.id))
+            os.makedirs(os.path.join(settings.MEDIA_ROOT, user_dir), exist_ok=True)
+
+            # Optimize and resize the original image
+            image.seek(0)  # Reset file pointer
+            optimized_buffer = optimize_and_resize_image(image, max_size=(800, 800), quality=90)
+            if optimized_buffer:
+                # Save optimized original image
+                original_file_name = f"profile_{user.id}_original.jpg"
+                original_file_path = f'{user_dir}/{original_file_name}'
+                original_full_path = os.path.join(settings.MEDIA_ROOT, original_file_path)
+
+                with open(original_full_path, 'wb+') as destination:
+                    destination.write(optimized_buffer.getvalue())
+
+                print(f"✅ Saved optimized original: {original_file_name} ({len(optimized_buffer.getvalue())} bytes)")
+
+            # Create circular mask version
+            image.seek(0)  # Reset file pointer
+            circular_mask_buffer = create_circular_mask(image, size=(300, 300))
+            if circular_mask_buffer:
+                circular_file_name = f"profile_{user.id}_circ_mask.png"
+                circular_file_path = f'{user_dir}/{circular_file_name}'
+                circular_full_path = os.path.join(settings.MEDIA_ROOT, circular_file_path)
+
+                with open(circular_full_path, 'wb+') as circular_destination:
+                    circular_destination.write(circular_mask_buffer.getvalue())
+
+                print(f"✅ Saved circular mask: {circular_file_name} ({len(circular_mask_buffer.getvalue())} bytes)")
+
+                # Save the circular mask path to database (frontend expects this)
+                user.profile_image = circular_file_path
+                user.save()
+
+                return Response({
+                    'message': 'Profile image updated successfully',
+                    'profile_image': request.build_absolute_uri(user.profile_image.url),
+                    'original_image': request.build_absolute_uri(settings.MEDIA_URL + original_file_path) if optimized_buffer else None,
+                    'optimized_size': {
+                        'original': f"{len(optimized_buffer.getvalue()) if optimized_buffer else 0} bytes",
+                        'circular': f"{len(circular_mask_buffer.getvalue()) if circular_mask_buffer else 0} bytes"
+                    }
+                })
+            else:
+                return Response(
+                    {'error': 'Failed to process image'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
             return Response({
                 'message': 'Profile image updated successfully',

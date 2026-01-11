@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Rating Demo - E-Learning Platform</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+
+        h1, h2, h3 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .course-card {
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f8f9fa;
+        }
+
+        .course-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .course-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .rating-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stars {
+            display: flex;
+            gap: 2px;
+        }
+
+        .star {
+            font-size: 24px;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .star.active {
+            color: #ffc107;
+        }
+
+        .star:hover {
+            color: #ffc107;
+        }
+
+        .rating-text {
+            font-weight: bold;
+            color: #666;
+        }
+
+        .rating-form {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .reviews-section {
+            margin-top: 30px;
+        }
+
+        .review-card {
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .reviewer-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .review-date {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .review-rating {
+            color: #ffc107;
+            font-size: 18px;
+        }
+
+        .review-comment {
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .api-demo {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .feature-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature-item h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .feature-item p {
+            margin: 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Course Rating System</h1>
+        <p><strong>Haan! Users आसानी से courses को rate कर सकते हैं!</strong></p>
+
+        <div class="feature-list">
+            <div class="feature-item">
+                <h4>⭐ 1-5 Star Rating</h4>
+                <p>Users can give 1 to 5 stars to courses</p>
+            </div>
+            <div class="feature-item">
+                <h4>💬 Review Comments</h4>
+                <p>Write detailed feedback about courses</p>
+            </div>
+            <div class="feature-item">
+                <h4>🔒 Smart Validation</h4>
+                <p>Only enrolled students with 50%+ progress can review</p>
+            </div>
+            <div class="feature-item">
+                <h4>📊 Real-time Updates</h4>
+                <p>Average ratings update instantly</p>
+            </div>
+        </div>
+
+        <h2>📚 Sample Course</h2>
+        <div class="course-card">
+            <div class="course-header">
+                <div class="course-title">Python for Beginners</div>
+                <div class="rating-display">
+                    <div class="stars">
+                        <span class="star active">★</span>
+                        <span class="star active">★</span>
+                        <span class="star active">★</span>
+                        <span class="star active">★</span>
+                        <span class="star">★</span>
+                    </div>
+                    <span class="rating-text">4.0 (25 reviews)</span>
+                </div>
+            </div>
+            <p><strong>👨‍🏫 Instructor:</strong> John Smith</p>
+            <p><strong>📊 Level:</strong> Beginner</p>
+            <p><strong>💰 Price:</strong> ₹999</p>
+        </div>
+
+        <h2>⭐ Rate This Course</h2>
+        <div class="rating-form">
+            <div class="form-group">
+                <label>Your Rating:</label>
+                <div class="stars" id="rating-stars">
+                    <span class="star" data-rating="1">★</span>
+                    <span class="star" data-rating="2">★</span>
+                    <span class="star" data-rating="3">★</span>
+                    <span class="star" data-rating="4">★</span>
+                    <span class="star" data-rating="5">★</span>
+                </div>
+                <input type="hidden" id="selected-rating" value="0">
+            </div>
+
+            <div class="form-group">
+                <label>Your Review:</label>
+                <textarea id="review-comment" rows="4" placeholder="Share your experience with this course..."></textarea>
+            </div>
+
+            <button class="submit-btn" id="submit-rating">Submit Review</button>
+        </div>
+
+        <div id="status-message"></div>
+
+        <h2>💬 Recent Reviews</h2>
+        <div class="reviews-section" id="reviews-list">
+            <div class="review-card">
+                <div class="review-header">
+                    <span class="reviewer-name">Rahul Sharma</span>
+                    <div class="review-rating">★★★★★</div>
+                </div>
+                <div class="review-date">2 days ago</div>
+                <div class="review-comment">
+                    "Excellent course! The instructor explains everything very clearly.
+                    I learned Python from scratch and now I can build applications.
+                    Highly recommended for beginners!"
+                </div>
+            </div>
+
+            <div class="review-card">
+                <div class="review-header">
+                    <span class="reviewer-name">Priya Patel</span>
+                    <div class="review-rating">★★★★☆</div>
+                </div>
+                <div class="review-date">1 week ago</div>
+                <div class="review-comment">
+                    "Good course overall. Some topics could be explained in more detail,
+                    but the projects are very helpful for practice."
+                </div>
+            </div>
+        </div>
+
+        <h2>🔧 API Integration</h2>
+        <div class="api-demo">
+            <h3>Submit Rating API Call:</h3>
+            <div class="code-block">
+POST /api/courses/{course_id}/review/<br>
+Authorization: Bearer {your_token}<br>
+Content-Type: application/json<br><br>
+{<br>
+&nbsp;&nbsp;"rating": 5,<br>
+&nbsp;&nbsp;"comment": "Excellent course!"<br>
+}
+            </div>
+
+            <h3>Response:</h3>
+            <div class="code-block">
+{<br>
+&nbsp;&nbsp;"status": "success",<br>
+&nbsp;&nbsp;"message": "Review submitted successfully",<br>
+&nbsp;&nbsp;"review": { ... },<br>
+&nbsp;&nbsp;"course": { ... }<br>
+}
+            </div>
+        </div>
+
+        <div class="info status-message">
+            <strong>💡 How it works:</strong>
+            <ol>
+                <li>User must be enrolled in the course</li>
+                <li>User must complete at least 50% of the course</li>
+                <li>One review per user per course</li>
+                <li>Ratings update course average instantly</li>
+                <li>Reviews help other students make decisions</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Interactive star rating
+        const stars = document.querySelectorAll('#rating-stars .star');
+        const selectedRating = document.getElementById('selected-rating');
+        const submitBtn = document.getElementById('submit-rating');
+        const statusMessage = document.getElementById('status-message');
+
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                const rating = this.dataset.rating;
+                selectedRating.value = rating;
+
+                // Update star display
+                stars.forEach(s => {
+                    s.classList.toggle('active', s.dataset.rating <= rating);
+                });
+
+                submitBtn.disabled = false;
+            });
+
+            star.addEventListener('mouseover', function() {
+                const rating = this.dataset.rating;
+                stars.forEach(s => {
+                    s.classList.toggle('active', s.dataset.rating <= rating);
+                });
+            });
+
+            star.addEventListener('mouseout', function() {
+                const rating = selectedRating.value;
+                stars.forEach(s => {
+                    s.classList.toggle('active', s.dataset.rating <= rating);
+                });
+            });
+        });
+
+        // Submit rating
+        submitBtn.addEventListener('click', function() {
+            const rating = selectedRating.value;
+            const comment = document.getElementById('review-comment').value;
+
+            if (rating === '0') {
+                showMessage('Please select a rating first!', 'error');
+                return;
+            }
+
+            // Simulate API call
+            submitBtn.textContent = 'Submitting...';
+            submitBtn.disabled = true;
+
+            // Mock API response
+            setTimeout(() => {
+                showMessage('✅ Review submitted successfully! Thank you for your feedback.', 'success');
+
+                // Reset form
+                selectedRating.value = '0';
+                document.getElementById('review-comment').value = '';
+                stars.forEach(s => s.classList.remove('active'));
+                submitBtn.textContent = 'Submit Review';
+                submitBtn.disabled = true;
+
+                // Add review to list (mock)
+                addMockReview(rating, comment);
+            }, 1500);
+        });
+
+        function showMessage(message, type) {
+            statusMessage.innerHTML = `<div class="status-message ${type}">${message}</div>`;
+            setTimeout(() => {
+                statusMessage.innerHTML = '';
+            }, 5000);
+        }
+
+        function addMockReview(rating, comment) {
+            if (!comment.trim()) return;
+
+            const reviewsList = document.getElementById('reviews-list');
+            const reviewCard = document.createElement('div');
+            reviewCard.className = 'review-card';
+
+            const stars = '★'.repeat(rating) + '☆'.repeat(5-rating);
+
+            reviewCard.innerHTML = `
+                <div class="review-header">
+                    <span class="reviewer-name">You</span>
+                    <div class="review-rating">${stars}</div>
+                </div>
+                <div class="review-date">Just now</div>
+                <div class="review-comment">"${comment}"</div>
+            `;
+
+            reviewsList.insertBefore(reviewCard, reviewsList.firstChild);
+        }
+
+        // Initialize
+        submitBtn.disabled = true;
+    </script>
+</body>
+</html>
+
+
+

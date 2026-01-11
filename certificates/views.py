@@ -8,6 +8,7 @@ from django.db.models import Count, Avg, Q, F
 from django.utils import timezone
 from datetime import timedelta
 from .models import Certificate, CertificateTemplate
+from .certificate_generator import CertificateGenerator
 from .serializers import (
     CertificateTemplateSerializer,
     CertificateListSerializer,
@@ -273,6 +274,20 @@ def auto_generate_certificates(request):
     ).exclude(
         user__certificates__course=F('course')
     ).select_related('user', 'course')
+
+    # Get default template
+    try:
+        template = CertificateTemplate.objects.first()
+        if not template:
+            return Response(
+                {'error': 'No certificate template available'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except Exception as e:
+        return Response(
+            {'error': f'Template error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
     certificates_created = []
 

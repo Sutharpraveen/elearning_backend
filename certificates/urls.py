@@ -10,8 +10,8 @@ router.register(r'', views.CertificateViewSet, basename='certificate')
 
 # Additional URL patterns
 urlpatterns = [
-    path('', include(router.urls)),
     path('verify/', views.verify_certificate, name='verify-certificate'),
     path('verify/<uuid:certificate_id>/', views.certificate_verification_page, name='certificate-verification-page'),
     path('auto-generate/', views.auto_generate_certificates, name='auto-generate-certificates'),
+    path('', include(router.urls)),  # Router URLs last to avoid conflicts
 ]

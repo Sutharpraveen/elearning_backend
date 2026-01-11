@@ -180,3 +180,8 @@ class CertificateStatsSerializer(serializers.Serializer):
     average_completion_score = serializers.DecimalField(max_digits=5, decimal_places=2)
 
 
+
+
+
+
+

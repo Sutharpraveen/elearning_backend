@@ -125,8 +125,14 @@ class LectureAdmin(admin.ModelAdmin):
                 import threading
 
                 # Start universal video processing
-                thread = threading.Thread(target=process_lecture_video_universal, args=(obj.id,))
-                thread.daemon = True
+                def process_video_background():
+                    try:
+                        process_lecture_video_universal(obj.id)
+                    except Exception as e:
+                        print(f"Background video processing error for lecture {obj.id}: {str(e)}")
+
+                thread = threading.Thread(target=process_video_background)
+                thread.daemon = False  # Don't make it daemon so it completes
                 thread.start()
 
                 # Add success message

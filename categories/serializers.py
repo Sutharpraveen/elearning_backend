@@ -5,9 +5,9 @@ from courses.models import Course
 # Serializer for Course inside Category
 class CourseInCategorySerializer(serializers.ModelSerializer):
     instructor_name = serializers.CharField(source='instructor.get_full_name', read_only=True)
-    total_lectures = serializers.IntegerField(read_only=True)
-    total_students = serializers.IntegerField(read_only=True)
-    rating = serializers.DecimalField(max_digits=3, decimal_places=2, read_only=True)
+    total_lectures = serializers.SerializerMethodField()
+    total_students = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -27,6 +27,18 @@ class CourseInCategorySerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at'
         ]
+
+    def get_total_lectures(self, obj):
+        return sum(section.lectures.count() for section in obj.sections.all())
+
+    def get_total_students(self, obj):
+        return obj.enrollments.count()
+
+    def get_rating(self, obj):
+        reviews = obj.reviews.all()
+        if reviews:
+            return round(sum(review.rating for review in reviews) / reviews.count(), 2)
+        return 0.0
 
 
 # ✅ Base Category Serializer with shared methods
@@ -84,7 +96,7 @@ class CategoryDetailSerializer(BaseCategorySerializer):
         ]
 
     def get_total_students(self, obj):
-        return sum(course.total_students for course in obj.courses.all())
+        return sum(course.enrollments.count() for course in obj.courses.all())
 
     def get_total_instructors(self, obj):
         return obj.courses.values('instructor').distinct().count()
