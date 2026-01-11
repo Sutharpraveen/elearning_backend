@@ -98,7 +98,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]  # Allows read-only access to unauthenticated users
     parser_classes = (MultiPartParser, FormParser)
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['title', 'description', 'level', 'language']
+    search_fields = ['title', 'description', 'level', 'language', 'instructor__username', 'instructor__first_name', 'instructor__last_name']
     ordering_fields = ['created_at', 'title', 'original_price']
 
     def get_queryset(self):
