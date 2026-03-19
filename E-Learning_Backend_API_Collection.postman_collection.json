@@ -1,0 +1,790 @@
+{
+  "info": {
+    "name": "E-Learning Backend API",
+    "description": "Complete API collection for Udemy-style E-Learning platform.\n\nSetup:\n1. Import this collection\n2. Import the environment file\n3. Run 'Register' or 'Login' first — tokens auto-save\n4. All other requests use saved tokens automatically",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "1. Auth & Users",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.tokens) {",
+                  "  pm.environment.set('access_token', res.tokens.access);",
+                  "  pm.environment.set('refresh_token', res.tokens.refresh);",
+                  "}",
+                  "if (res.user) pm.environment.set('user_id', res.user.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"username\": \"testuser\",\n  \"password\": \"Test@12345\",\n  \"confirm_password\": \"Test@12345\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/users/register/", "host": ["{{base_url}}"], "path": ["api", "users", "register", ""] },
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.tokens) {",
+                  "  pm.environment.set('access_token', res.tokens.access);",
+                  "  pm.environment.set('refresh_token', res.tokens.refresh);",
+                  "}",
+                  "if (res.user) pm.environment.set('user_id', res.user.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student0@test.com\",\n  \"password\": \"Test@12345\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/users/login/", "host": ["{{base_url}}"], "path": ["api", "users", "login", ""] },
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Token Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.access) pm.environment.set('access_token', res.access);",
+                  "if (res.refresh) pm.environment.set('refresh_token', res.refresh);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/users/token/refresh/", "host": ["{{base_url}}"], "path": ["api", "users", "token", "refresh", ""] },
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/users/logout/", "host": ["{{base_url}}"], "path": ["api", "users", "logout", ""] }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/users/profile/", "host": ["{{base_url}}"], "path": ["api", "users", "profile", ""] }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"I love learning!\",\n  \"headline\": \"Student at TutBot\",\n  \"phone_number\": \"9876543210\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/users/profile/", "host": ["{{base_url}}"], "path": ["api", "users", "profile", ""] }
+          }
+        },
+        {
+          "name": "Upload Profile Image",
+          "request": {
+            "method": "PATCH",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "profile_image", "type": "file", "src": "" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/api/users/profile/image/", "host": ["{{base_url}}"], "path": ["api", "users", "profile", "image", ""] }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"Test@12345\",\n  \"new_password\": \"NewPass@123\",\n  \"confirm_password\": \"NewPass@123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/users/profile/change-password/", "host": ["{{base_url}}"], "path": ["api", "users", "profile", "change-password", ""] }
+          }
+        },
+        {
+          "name": "Profile Statistics",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/users/profile/statistics/", "host": ["{{base_url}}"], "path": ["api", "users", "profile", "statistics", ""] }
+          }
+        },
+        {
+          "name": "Public Profile",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/users/profile/{{user_id}}/", "host": ["{{base_url}}"], "path": ["api", "users", "profile", "{{user_id}}", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Courses",
+      "item": [
+        {
+          "name": "Home Page",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/home/", "host": ["{{base_url}}"], "path": ["api", "courses", "home", ""] },
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Courses List (Paginated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/courses/courses/?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "courses", "courses", ""],
+              "query": [{ "key": "page", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Courses - Filter by Category",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/courses/courses/?category={{category_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "courses", "courses", ""],
+              "query": [{ "key": "category", "value": "{{category_id}}" }]
+            }
+          }
+        },
+        {
+          "name": "Course Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", ""] }
+          }
+        },
+        {
+          "name": "Create Course (Instructor)",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "My New Course", "type": "text" },
+                { "key": "description", "value": "Course description here", "type": "text" },
+                { "key": "category_id", "value": "{{category_id}}", "type": "text" },
+                { "key": "original_price", "value": "999", "type": "text" },
+                { "key": "discounted_price", "value": "499", "type": "text" },
+                { "key": "level", "value": "beginner", "type": "text" },
+                { "key": "language", "value": "English", "type": "text" },
+                { "key": "is_published", "value": "true", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/api/courses/courses/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", ""] }
+          }
+        },
+        {
+          "name": "Search Courses",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/courses/search/?q=python",
+              "host": ["{{base_url}}"],
+              "path": ["api", "courses", "search", ""],
+              "query": [{ "key": "q", "value": "python" }]
+            }
+          }
+        },
+        {
+          "name": "Top Rated Courses",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/top-rated/", "host": ["{{base_url}}"], "path": ["api", "courses", "top-rated", ""] }
+          }
+        },
+        {
+          "name": "Rating Statistics",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/rating-statistics/", "host": ["{{base_url}}"], "path": ["api", "courses", "rating-statistics", ""] }
+          }
+        },
+        {
+          "name": "Enroll in Course",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/enroll/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "enroll", ""] }
+          }
+        },
+        {
+          "name": "Submit Review",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Great course!\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/review/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "review", ""] }
+          }
+        },
+        {
+          "name": "Update Review",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"comment\": \"Updated review\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/update_review/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "update_review", ""] }
+          }
+        },
+        {
+          "name": "My Review",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/my_review/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "my_review", ""] }
+          }
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/delete_review/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "delete_review", ""] }
+          }
+        },
+        {
+          "name": "Course Reviews List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/reviews/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "reviews", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Sections & Lectures",
+      "item": [
+        {
+          "name": "List Sections",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/sections/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "sections", ""] }
+          }
+        },
+        {
+          "name": "Create Section",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Introduction\",\n  \"order\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/sections/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "sections", ""] }
+          }
+        },
+        {
+          "name": "Section Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/sections/{{section_id}}/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "sections", "{{section_id}}", ""] }
+          }
+        },
+        {
+          "name": "List Lectures",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/sections/{{section_id}}/lectures/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "sections", "{{section_id}}", "lectures", ""] }
+          }
+        },
+        {
+          "name": "Create Lecture",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Getting Started", "type": "text" },
+                { "key": "order", "value": "1", "type": "text" },
+                { "key": "duration", "value": "10", "type": "text" },
+                { "key": "is_preview", "value": "true", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/sections/{{section_id}}/lectures/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "sections", "{{section_id}}", "lectures", ""] }
+          }
+        },
+        {
+          "name": "Lecture Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/sections/{{section_id}}/lectures/{{lecture_id}}/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "sections", "{{section_id}}", "lectures", "{{lecture_id}}", ""] }
+          }
+        },
+        {
+          "name": "List Resources",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/courses/{{course_id}}/sections/{{section_id}}/lectures/{{lecture_id}}/resources/", "host": ["{{base_url}}"], "path": ["api", "courses", "courses", "{{course_id}}", "sections", "{{section_id}}", "lectures", "{{lecture_id}}", "resources", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Enrollments & Progress",
+      "item": [
+        {
+          "name": "My Enrollments",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/enrollments/", "host": ["{{base_url}}"], "path": ["api", "courses", "enrollments", ""] }
+          }
+        },
+        {
+          "name": "Enrollment Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/enrollments/{{enrollment_id}}/", "host": ["{{base_url}}"], "path": ["api", "courses", "enrollments", "{{enrollment_id}}", ""] }
+          }
+        },
+        {
+          "name": "Continue Learning",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/enrollments/continue_learning/", "host": ["{{base_url}}"], "path": ["api", "courses", "enrollments", "continue_learning", ""] }
+          }
+        },
+        {
+          "name": "Progress List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/courses/progress/", "host": ["{{base_url}}"], "path": ["api", "courses", "progress", ""] }
+          }
+        },
+        {
+          "name": "Course Progress (Detailed)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/courses/progress/course_progress/?course_id={{course_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "courses", "progress", "course_progress", ""],
+              "query": [{ "key": "course_id", "value": "{{course_id}}" }]
+            }
+          }
+        },
+        {
+          "name": "Update Lecture Progress",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"completed\": true,\n  \"last_position\": 120\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/courses/progress/{{progress_id}}/update_progress/", "host": ["{{base_url}}"], "path": ["api", "courses", "progress", "{{progress_id}}", "update_progress", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Categories",
+      "item": [
+        {
+          "name": "Categories List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/categories/", "host": ["{{base_url}}"], "path": ["api", "categories", ""] }
+          }
+        },
+        {
+          "name": "Category Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/categories/{{category_id}}/", "host": ["{{base_url}}"], "path": ["api", "categories", "{{category_id}}", ""] }
+          }
+        },
+        {
+          "name": "Category Courses",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/categories/{{category_id}}/courses/", "host": ["{{base_url}}"], "path": ["api", "categories", "{{category_id}}", "courses", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Shopping - Wishlist",
+      "item": [
+        {
+          "name": "Wishlist List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/shopping/wishlist/", "host": ["{{base_url}}"], "path": ["api", "shopping", "wishlist", ""] }
+          }
+        },
+        {
+          "name": "Add to Wishlist",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 2\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/shopping/wishlist/add_course/", "host": ["{{base_url}}"], "path": ["api", "shopping", "wishlist", "add_course", ""] }
+          }
+        },
+        {
+          "name": "Remove from Wishlist",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 2\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/shopping/wishlist/remove_course/", "host": ["{{base_url}}"], "path": ["api", "shopping", "wishlist", "remove_course", ""] }
+          }
+        },
+        {
+          "name": "Move Wishlist to Cart",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 2\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/shopping/wishlist/move_to_cart/", "host": ["{{base_url}}"], "path": ["api", "shopping", "wishlist", "move_to_cart", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Shopping - Cart",
+      "item": [
+        {
+          "name": "Cart List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/shopping/cart/", "host": ["{{base_url}}"], "path": ["api", "shopping", "cart", ""] }
+          }
+        },
+        {
+          "name": "Cart Summary",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/shopping/cart/get_cart_summary/", "host": ["{{base_url}}"], "path": ["api", "shopping", "cart", "get_cart_summary", ""] }
+          }
+        },
+        {
+          "name": "Add to Cart",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 3\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/shopping/cart/add/", "host": ["{{base_url}}"], "path": ["api", "shopping", "cart", "add", ""] }
+          }
+        },
+        {
+          "name": "Remove from Cart",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 3\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/shopping/cart/remove/", "host": ["{{base_url}}"], "path": ["api", "shopping", "cart", "remove", ""] }
+          }
+        },
+        {
+          "name": "Save for Later",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 3\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/shopping/cart/save_for_later/", "host": ["{{base_url}}"], "path": ["api", "shopping", "cart", "save_for_later", ""] }
+          }
+        },
+        {
+          "name": "Move to Cart (from Saved)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 3\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/shopping/cart/move_to_cart/", "host": ["{{base_url}}"], "path": ["api", "shopping", "cart", "move_to_cart", ""] }
+          }
+        },
+        {
+          "name": "Get Saved Items",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/shopping/cart/get_saved_items/", "host": ["{{base_url}}"], "path": ["api", "shopping", "cart", "get_saved_items", ""] }
+          }
+        },
+        {
+          "name": "Apply Coupon",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coupon_code\": \"SAVE20\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/shopping/cart/apply_coupon/", "host": ["{{base_url}}"], "path": ["api", "shopping", "cart", "apply_coupon", ""] }
+          }
+        },
+        {
+          "name": "Remove Coupon",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/shopping/cart/remove_coupon/", "host": ["{{base_url}}"], "path": ["api", "shopping", "cart", "remove_coupon", ""] }
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/shopping/cart/clear_cart/", "host": ["{{base_url}}"], "path": ["api", "shopping", "cart", "clear_cart", ""] }
+          }
+        },
+        {
+          "name": "Course Status Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/shopping/course-status/{{course_id}}/", "host": ["{{base_url}}"], "path": ["api", "shopping", "course-status", "{{course_id}}", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Payments",
+      "item": [
+        {
+          "name": "Create Single Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 2,\n  \"amount\": 199\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/payments/single/create/", "host": ["{{base_url}}"], "path": ["api", "payments", "single", "create", ""] }
+          }
+        },
+        {
+          "name": "Verify Single Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_xxx\",\n  \"razorpay_payment_id\": \"pay_xxx\",\n  \"razorpay_signature\": \"sig_xxx\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/payments/single/verify/", "host": ["{{base_url}}"], "path": ["api", "payments", "single", "verify", ""] }
+          }
+        },
+        {
+          "name": "Create Multi Payment (Cart)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_ids\": [2, 3],\n  \"amount\": 398\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/payments/multi/create/", "host": ["{{base_url}}"], "path": ["api", "payments", "multi", "create", ""] }
+          }
+        },
+        {
+          "name": "Verify Multi Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_xxx\",\n  \"razorpay_payment_id\": \"pay_xxx\",\n  \"razorpay_signature\": \"sig_xxx\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/payments/multi/verify/", "host": ["{{base_url}}"], "path": ["api", "payments", "multi", "verify", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Quizzes",
+      "item": [
+        {
+          "name": "Quiz List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/quizzes/quizzes/", "host": ["{{base_url}}"], "path": ["api", "quizzes", "quizzes", ""] }
+          }
+        },
+        {
+          "name": "Quiz Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/quizzes/quizzes/{{quiz_id}}/", "host": ["{{base_url}}"], "path": ["api", "quizzes", "quizzes", "{{quiz_id}}", ""] }
+          }
+        },
+        {
+          "name": "Questions List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/quizzes/questions/", "host": ["{{base_url}}"], "path": ["api", "quizzes", "questions", ""] }
+          }
+        },
+        {
+          "name": "My Quiz Attempts",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/quizzes/attempts/", "host": ["{{base_url}}"], "path": ["api", "quizzes", "attempts", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Certificates",
+      "item": [
+        {
+          "name": "My Certificates",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/certificates/", "host": ["{{base_url}}"], "path": ["api", "certificates", ""] }
+          }
+        },
+        {
+          "name": "Certificate Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/certificates/{{certificate_id}}/", "host": ["{{base_url}}"], "path": ["api", "certificates", "{{certificate_id}}", ""] }
+          }
+        },
+        {
+          "name": "Verify Certificate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"certificate_id\": \"uuid-here\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/certificates/verify/", "host": ["{{base_url}}"], "path": ["api", "certificates", "verify", ""] }
+          }
+        },
+        {
+          "name": "Certificate Templates (Admin)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/certificates/templates/", "host": ["{{base_url}}"], "path": ["api", "certificates", "templates", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Chapters",
+      "item": [
+        {
+          "name": "Chapters List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/chapters/chapters/", "host": ["{{base_url}}"], "path": ["api", "chapters", "chapters", ""] }
+          }
+        },
+        {
+          "name": "Chapter Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/chapters/chapters/{{chapter_id}}/", "host": ["{{base_url}}"], "path": ["api", "chapters", "chapters", "{{chapter_id}}", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. Core",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/core/health/", "host": ["{{base_url}}"], "path": ["api", "core", "health", ""] },
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Slider Images",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/core/sliders/", "host": ["{{base_url}}"], "path": ["api", "core", "sliders", ""] }
+          }
+        },
+        {
+          "name": "App Versions",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/core/app-versions/", "host": ["{{base_url}}"], "path": ["api", "core", "app-versions", ""] }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,132 +1,9 @@
-# from rest_framework import viewsets, status
-# from rest_framework.decorators import action
-# from rest_framework.response import Response
-# from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-# from rest_framework.permissions import IsAuthenticated
-# from rest_framework_simplejwt.authentication import JWTAuthentication
-
-# from .models import Category
-# from .serializers import CategorySerializer, CourseInCategorySerializer
-
-
-# class CategoryViewSet(viewsets.ModelViewSet):
-#     queryset = Category.objects.all()
-#     serializer_class = CategorySerializer
-#     permission_classes = [IsAuthenticated]
-#     authentication_classes = [JWTAuthentication]
-#     parser_classes = (MultiPartParser, FormParser, JSONParser)
-
-#     def list(self, request, *args, **kwargs):
-#         try:
-#             queryset = self.filter_queryset(self.get_queryset())
-#             serializer = self.get_serializer(queryset, many=True, context={'request': request})
-#             return Response({
-#                 'status': 'success',
-#                 'message': 'Categories retrieved successfully',
-#                 'data': serializer.data
-#             })
-#         except Exception as e:
-#             return Response({
-#                 'status': 'error',
-#                 'message': str(e)
-#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#     def create(self, request, *args, **kwargs):
-#         try:
-#             serializer = self.get_serializer(data=request.data, context={'request': request})
-#             if serializer.is_valid():
-#                 self.perform_create(serializer)
-#                 return Response({
-#                     'status': 'success',
-#                     'message': 'Category created successfully',
-#                     'data': serializer.data
-#                 }, status=status.HTTP_201_CREATED)
-#             return Response({
-#                 'status': 'error',
-#                 'message': 'Validation error',
-#                 'errors': serializer.errors
-#             }, status=status.HTTP_400_BAD_REQUEST)
-#         except Exception as e:
-#             return Response({
-#                 'status': 'error',
-#                 'message': str(e)
-#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#     def retrieve(self, request, *args, **kwargs):
-#         try:
-#             instance = self.get_object()
-#             serializer = self.get_serializer(instance, context={'request': request})
-#             return Response({
-#                 'status': 'success',
-#                 'message': 'Category retrieved successfully',
-#                 'data': serializer.data
-#             })
-#         except Exception as e:
-#             return Response({
-#                 'status': 'error',
-#                 'message': str(e)
-#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#     def update(self, request, *args, **kwargs):
-#         try:
-#             instance = self.get_object()
-#             serializer = self.get_serializer(instance, data=request.data, partial=True, context={'request': request})
-#             if serializer.is_valid():
-#                 self.perform_update(serializer)
-#                 return Response({
-#                     'status': 'success',
-#                     'message': 'Category updated successfully',
-#                     'data': serializer.data
-#                 })
-#             return Response({
-#                 'status': 'error',
-#                 'message': 'Validation error',
-#                 'errors': serializer.errors
-#             }, status=status.HTTP_400_BAD_REQUEST)
-#         except Exception as e:
-#             return Response({
-#                 'status': 'error',
-#                 'message': str(e)
-#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#     def destroy(self, request, *args, **kwargs):
-#         try:
-#             instance = self.get_object()
-#             self.perform_destroy(instance)
-#             return Response({
-#                 'status': 'success',
-#                 'message': 'Category deleted successfully'
-#             }, status=status.HTTP_204_NO_CONTENT)
-#         except Exception as e:
-#             return Response({
-#                 'status': 'error',
-#                 'message': str(e)
-#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#     @action(detail=True, methods=['get'], url_path='courses')
-#     def get_courses(self, request, pk=None):
-#         try:
-#             category = self.get_object()
-#             courses = category.courses.all()
-#             course_serializer = CourseInCategorySerializer(courses, many=True, context={'request': request})
-#             return Response({
-#                 'status': 'success',
-#                 'message': 'Courses retrieved successfully',
-#                 'data': course_serializer.data
-#             })
-#         except Exception as e:
-#             return Response({
-#                 'status': 'error',
-#                 'message': str(e)
-#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
+from django.db.models import Count
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, SAFE_METHODS, BasePermission
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .models import Category
@@ -137,112 +14,44 @@ from .serializers import (
 )
 
 
+class IsAdminOrAuthenticatedReadOnly(BasePermission):
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS:
+            return request.user and request.user.is_authenticated
+        return request.user and request.user.is_staff
+
+
 class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrAuthenticatedReadOnly]
     authentication_classes = [JWTAuthentication]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
-    def list(self, request, *args, **kwargs):
-        try:
-            queryset = self.filter_queryset(self.get_queryset())
-            serializer = CategoryListSerializer(queryset, many=True, context={'request': request})
-            return Response({
-                'status': 'success',
-                'message': 'Categories retrieved successfully',
-                'data': serializer.data
-            })
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'message': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def get_queryset(self):
+        return Category.objects.annotate(
+            annotated_total_courses=Count('courses', distinct=True)
+        )
 
-    def create(self, request, *args, **kwargs):
-        try:
-            serializer = CategoryDetailSerializer(data=request.data, context={'request': request})
-            if serializer.is_valid():
-                self.perform_create(serializer)
-                return Response({
-                    'status': 'success',
-                    'message': 'Category created successfully',
-                    'data': serializer.data
-                }, status=status.HTTP_201_CREATED)
-            return Response({
-                'status': 'error',
-                'message': 'Validation error',
-                'errors': serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'message': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return CategoryListSerializer
+        return CategoryDetailSerializer
+
+    def get_serializer_context(self):
+        return {'request': self.request}
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'status': 'success',
+            'data': serializer.data
+        })
 
     def retrieve(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = CategoryDetailSerializer(instance, context={'request': request})
-            return Response({
-                'status': 'success',
-                'message': 'Category retrieved successfully',
-                'data': serializer.data
-            })
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'message': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        instance = self.get_object()
+        serializer = CategoryDetailSerializer(instance, context={'request': request})
+        return Response({
+            'status': 'success',
+            'data': serializer.data
+        })
 
-    def update(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = CategoryDetailSerializer(instance, data=request.data, partial=True, context={'request': request})
-            if serializer.is_valid():
-                self.perform_update(serializer)
-                return Response({
-                    'status': 'success',
-                    'message': 'Category updated successfully',
-                    'data': serializer.data
-                })
-            return Response({
-                'status': 'error',
-                'message': 'Validation error',
-                'errors': serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'message': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def destroy(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            self.perform_destroy(instance)
-            return Response({
-                'status': 'success',
-                'message': 'Category deleted successfully'
-            }, status=status.HTTP_204_NO_CONTENT)
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'message': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    @action(detail=True, methods=['get'], url_path='courses')
-    def get_courses(self, request, pk=None):
-        try:
-            category = self.get_object()
-            courses = category.courses.all()
-            course_serializer = CourseInCategorySerializer(courses, many=True, context={'request': request})
-            return Response({
-                'status': 'success',
-                'message': 'Courses retrieved successfully',
-                'data': course_serializer.data
-            })
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'message': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

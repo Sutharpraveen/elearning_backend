@@ -2,13 +2,15 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
 from .models import Wishlist, Cart, CartItem, Coupon
 from .serializers import WishlistSerializer, CartSummarySerializer, CartItemSerializer
 from courses.models import Course
 from django.utils import timezone
-from django.shortcuts import get_object_or_404
 
 from rest_framework.decorators import api_view, permission_classes
+
+
 class WishlistViewSet(viewsets.ModelViewSet):
     serializer_class = WishlistSerializer
     permission_classes = [IsAuthenticated]
@@ -25,13 +27,13 @@ class WishlistViewSet(viewsets.ModelViewSet):
         try:
             wishlist = self.get_object()
             course_id = request.data.get('course_id')
-            
+
             if not course_id:
                 return Response({
                     "status": "error",
                     "message": "course_id is required"
                 }, status=status.HTTP_400_BAD_REQUEST)
-            
+
             try:
                 course = Course.objects.get(id=course_id)
             except Course.DoesNotExist:
@@ -55,9 +57,6 @@ class WishlistViewSet(viewsets.ModelViewSet):
             })
 
         except Exception as e:
-            import traceback
-            print(f"Error adding course to wishlist: {str(e)}")
-            print(traceback.format_exc())
             return Response({
                 "status": "error",
                 "message": f"An error occurred: {str(e)}"
@@ -67,6 +66,16 @@ class WishlistViewSet(viewsets.ModelViewSet):
     def remove_course(self, request):
         wishlist = self.get_object()
         course_id = request.data.get('course_id')
+        if not course_id:
+            return Response({
+                "status": "error",
+                "message": "course_id is required"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        if not wishlist.courses.filter(id=course_id).exists():
+            return Response({
+                "status": "error",
+                "message": "Course not in wishlist"
+            }, status=status.HTTP_404_NOT_FOUND)
         wishlist.courses.remove(course_id)
         return Response({
             "status": "success",
@@ -79,13 +88,13 @@ class WishlistViewSet(viewsets.ModelViewSet):
         try:
             wishlist = self.get_object()
             course_id = request.data.get('course_id')
-            
+
             if not course_id:
                 return Response({
                     "status": "error",
                     "message": "course_id is required"
                 }, status=status.HTTP_400_BAD_REQUEST)
-            
+
             try:
                 course = Course.objects.get(id=course_id)
             except Course.DoesNotExist:
@@ -102,7 +111,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
 
             # Get or create cart
             cart, _ = Cart.objects.get_or_create(user=self.request.user)
-            
+
             # Check if course is already in cart
             if CartItem.objects.filter(cart=cart, course=course).exists():
                 return Response({
@@ -132,13 +141,11 @@ class WishlistViewSet(viewsets.ModelViewSet):
             })
 
         except Exception as e:
-            import traceback
-            print(f"Error moving course to cart: {str(e)}")
-            print(traceback.format_exc())
             return Response({
                 "status": "error",
                 "message": f"An error occurred: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class CartViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -248,7 +255,7 @@ class CartViewSet(viewsets.ModelViewSet):
         try:
             cart = self.get_object()
             coupon_code = request.data.get('coupon_code')
-            
+
             if not coupon_code:
                 return Response({
                     "status": "error",
@@ -322,12 +329,12 @@ class CartViewSet(viewsets.ModelViewSet):
         try:
             cart = self.get_object()
             course_id = request.data.get('course_id')
-            
+
             try:
                 cart_item = CartItem.objects.get(cart=cart, course_id=course_id)
                 cart_item.is_saved_for_later = False
                 cart_item.save()
-                
+
                 return Response({
                     "status": "success",
                     "message": "Course moved to cart",
@@ -349,7 +356,7 @@ class CartViewSet(viewsets.ModelViewSet):
     def remove_coupon(self, request):
         try:
             cart = self.get_object()
-            
+
             if not cart.coupon_code:
                 return Response({
                     "status": "error",
@@ -390,7 +397,7 @@ class CartViewSet(viewsets.ModelViewSet):
         try:
             cart = self.get_object()
             saved_items = cart.items.filter(is_saved_for_later=True)
-            
+
             return Response({
                 "status": "success",
                 "data": {
@@ -404,7 +411,7 @@ class CartViewSet(viewsets.ModelViewSet):
                 "status": "error",
                 "message": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -428,12 +435,4 @@ def check_course_status(request, course_id):
     return Response({
         "in_cart": in_cart,
         "in_wishlist": in_wishlist
-    })
-
-@api_view(['GET'])
-def get_api_version(request):
-    return Response({
-        'version': '1.0.0',
-        'status': 'active',
-        'last_updated': '2024-03-20'
     })

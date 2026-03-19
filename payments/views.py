@@ -20,11 +20,10 @@ client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_S
 def create_payment(request):
     try:
         course_id = request.data.get('course_id')
-        amount = request.data.get('amount')
         currency = request.data.get('currency', 'INR')
 
-        if not course_id or not amount:
-            return Response({'status': 'error', 'message': 'Course ID and amount are required'},
+        if not course_id:
+            return Response({'status': 'error', 'message': 'Course ID is required'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -37,7 +36,10 @@ def create_payment(request):
             return Response({'status': 'error', 'message': 'You already own this course'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        order_data = {'amount': int(float(amount) * 100), 'currency': currency, 'payment_capture': 1}
+        # Calculate amount securely on the backend
+        amount = float(course.discounted_price if course.discounted_price else course.original_price)
+
+        order_data = {'amount': int(amount * 100), 'currency': currency, 'payment_capture': 1}
         razorpay_order = client.order.create(data=order_data)
 
         payment = Payment.objects.create(user=request.user, course=course,
@@ -73,7 +75,7 @@ def verify_payment(request):
 
         try:
             client.utility.verify_payment_signature(params_dict)
-        except:
+        except Exception:
             return Response({'status': 'error', 'message': 'Invalid signature'},
                             status=status.HTTP_400_BAD_REQUEST)
 
@@ -124,11 +126,10 @@ def verify_payment(request):
 def create_multi_payment(request):
     try:
         course_ids = request.data.get('course_ids', [])
-        amount = request.data.get('amount')
         currency = request.data.get('currency', 'INR')
 
-        if not course_ids or not amount:
-            return Response({'status': 'error', 'message': 'Course IDs and amount are required'},
+        if not course_ids:
+            return Response({'status': 'error', 'message': 'Course IDs are required'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         courses = Course.objects.filter(id__in=course_ids)
@@ -136,7 +137,10 @@ def create_multi_payment(request):
             return Response({'status': 'error', 'message': 'No valid courses found'},
                             status=status.HTTP_404_NOT_FOUND)
 
-        order_data = {'amount': int(float(amount) * 100), 'currency': currency, 'payment_capture': 1}
+        # Calculate total amount securely on the backend
+        amount = sum(float(c.discounted_price if c.discounted_price else c.original_price) for c in courses)
+
+        order_data = {'amount': int(amount * 100), 'currency': currency, 'payment_capture': 1}
         razorpay_order = client.order.create(data=order_data)
 
         multi_payment = MultiPayment.objects.create(user=request.user,
@@ -178,7 +182,7 @@ def verify_multi_payment(request):
 
         try:
             client.utility.verify_payment_signature(params_dict)
-        except:
+        except Exception:
             return Response({'status': 'error', 'message': 'Invalid signature'},
                             status=status.HTTP_400_BAD_REQUEST)
 

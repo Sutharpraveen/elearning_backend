@@ -18,8 +18,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from core import views as core_views
 
 urlpatterns = [
+    path('health/', core_views.health_check, name='health_check'),
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/categories/', include('categories.urls')),
@@ -28,6 +30,8 @@ urlpatterns = [
     path('api/core/', include('core.urls')),
     path('api/shopping/', include('shopping.urls')),
     path('api/payments/', include('payments.urls')),
+    path('api/quizzes/', include('quizzes.urls')),
+    path('api/chapters/', include('chapters.urls')),
 ]
 
 # Add this for serving media files in development

@@ -6,60 +6,48 @@ from .views import (
     global_search, home_page_courses, top_rated_courses, rating_statistics
 )
 
-# Main router
+# 1. Main router for simple endpoints
 router = DefaultRouter()
 router.register('courses', CourseViewSet, basename='course')
 router.register('enrollments', EnrollmentViewSet, basename='enrollments')
 router.register('progress', ProgressViewSet, basename='progress')
 
 urlpatterns = [
-    # Main routes
+    # Router URLs
     path('', include(router.urls)),
 
-    # Search endpoint
+    # 2. Custom API Endpoints (Home & Search)
     path('search/', global_search, name='global-search'),
-
-    # Home page courses endpoint
     path('home/', home_page_courses, name='home-page-courses'),
-
-    # Rating and review endpoints
     path('top-rated/', top_rated_courses, name='top-rated-courses'),
     path('rating-statistics/', rating_statistics, name='rating-statistics'),
 
-    # Nested routes using re_path for regex matching
-    re_path(r'^(?P<course_pk>\d+)/sections/$', SectionViewSet.as_view({
-        'get': 'list',
-        'post': 'create'
+    # 3. Manual Nested Routes (Udemy-Style)
+    
+    # Sections: /courses/1/sections/
+    re_path(r'^courses/(?P<course_pk>\d+)/sections/$', SectionViewSet.as_view({
+        'get': 'list', 'post': 'create'
     }), name='course-sections-list'),
 
-    re_path(r'^(?P<course_pk>\d+)/sections/(?P<pk>\d+)/$', SectionViewSet.as_view({
-        'get': 'retrieve',
-        'put': 'update',
-        'patch': 'partial_update',
-        'delete': 'destroy'
+    re_path(r'^courses/(?P<course_pk>\d+)/sections/(?P<pk>\d+)/$', SectionViewSet.as_view({
+        'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'
     }), name='course-sections-detail'),
 
-    re_path(r'^(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures/$', LectureViewSet.as_view({
-        'get': 'list',
-        'post': 'create'
+    # Lectures: /courses/1/sections/2/lectures/
+    re_path(r'^courses/(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures/$', LectureViewSet.as_view({
+        'get': 'list', 'post': 'create'
     }), name='section-lectures-list'),
 
-    re_path(r'^(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures/(?P<pk>\d+)/$', LectureViewSet.as_view({
-        'get': 'retrieve',
-        'put': 'update',
-        'patch': 'partial_update',
-        'delete': 'destroy'
+    re_path(r'^courses/(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures/(?P<pk>\d+)/$', LectureViewSet.as_view({
+        'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'
     }), name='section-lectures-detail'),
 
-    re_path(r'^(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures/(?P<lecture_pk>\d+)/resources/$', ResourceViewSet.as_view({
-        'get': 'list',
-        'post': 'create'
+    # Resources: /courses/1/sections/2/lectures/3/resources/
+    re_path(r'^courses/(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures/(?P<lecture_pk>\d+)/resources/$', ResourceViewSet.as_view({
+        'get': 'list', 'post': 'create'
     }), name='lecture-resources-list'),
 
-    re_path(r'^(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures/(?P<lecture_pk>\d+)/resources/(?P<pk>\d+)/$', ResourceViewSet.as_view({
-        'get': 'retrieve',
-        'put': 'update',
-        'patch': 'partial_update',
-        'delete': 'destroy'
+    re_path(r'^courses/(?P<course_pk>\d+)/sections/(?P<section_pk>\d+)/lectures/(?P<lecture_pk>\d+)/resources/(?P<pk>\d+)/$', ResourceViewSet.as_view({
+        'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'
     }), name='lecture-resources-detail'),
 ]

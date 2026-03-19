@@ -19,6 +19,9 @@ from .serializers import (
     CertificateStatsSerializer
 )
 from courses.models import Enrollment
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CertificateTemplateViewSet(viewsets.ModelViewSet):
@@ -307,7 +310,7 @@ def auto_generate_certificates(request):
                 'course': enrollment.course.title
             })
         except Exception as e:
-            print(f"Failed to generate certificate for {enrollment.user}: {e}")
+            logger.exception("Failed to generate certificate for %s: %s", enrollment.user, e)
             continue
 
     return Response({

@@ -1,8 +1,6 @@
-# config/settings/dev.py
-
 from .base import *
 
 DEBUG = True
-ALLOWED_HOSTS = ['*']  # sabko allow local dev me
+ALLOWED_HOSTS = ['*']
 
-# SQLite hi theek hai local ke liye
+CORS_ALLOW_ALL_ORIGINS = True

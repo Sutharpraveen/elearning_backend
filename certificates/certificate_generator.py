@@ -136,13 +136,16 @@ class CertificateGenerator:
         for enrollment in enrollments:
             try:
                 certificate = CertificateGenerator.generate_certificate_for_student(
-                    enrollment.student,
+                    enrollment.user,
                     enrollment.course,
                     template
                 )
                 certificates.append(certificate)
             except Exception as e:
-                print(f"Failed to generate certificate for {enrollment.student}: {e}")
+                import logging
+                logging.getLogger(__name__).exception(
+                    "Failed to generate certificate for %s: %s", enrollment.user, e
+                )
                 continue
 
         return certificates

@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import Wishlist, Cart, CartItem, AppVersion
-from courses.serializers import CourseSerializer
+from .models import Wishlist, Cart, CartItem
+from courses.serializers import CourseListSerializer as CourseSerializer
+
 
 class WishlistSerializer(serializers.ModelSerializer):
     courses = CourseSerializer(many=True, read_only=True)
@@ -13,8 +14,9 @@ class WishlistSerializer(serializers.ModelSerializer):
     def get_total_courses(self, obj):
         return obj.courses.count()
 
+
 class CartItemSerializer(serializers.ModelSerializer):
-    course = CourseSerializer(read_only=True)
+    course = CourseSerializer()
     savings = serializers.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -33,6 +35,7 @@ class CartItemSerializer(serializers.ModelSerializer):
             'savings',
             'added_at'
         ]
+
 
 class CartSummarySerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)

@@ -1,9 +1,12 @@
+import uuid
 from django.db import models
+from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 from users.models import CustomUser
 from categories.models import Category
 
-
+# --- 1. COURSE MODEL ---
 class Course(models.Model):
     LEVEL_CHOICES = [
         ('Beginner', 'Beginner'),
@@ -11,11 +14,7 @@ class Course(models.Model):
         ('Advanced', 'Advanced')
     ]
 
-    instructor = models.ForeignKey(
-        CustomUser,
-        on_delete=models.CASCADE,
-        limit_choices_to={'role': 'instructor'}
-    )
+    instructor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'instructor'})
     category = models.ForeignKey(Category, related_name='courses', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, blank=True)
@@ -23,15 +22,11 @@ class Course(models.Model):
     learning_objectives = models.TextField(blank=True)
     requirements = models.TextField(blank=True)
     target_audience = models.TextField(blank=True)
-    level = models.CharField(
-        max_length=20,
-        choices=LEVEL_CHOICES,
-        default='Beginner'
-    )
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='Beginner')
     original_price = models.DecimalField(max_digits=10, decimal_places=2)
     discounted_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     language = models.CharField(max_length=50, default='English')
-    duration = models.DecimalField(max_digits=5, decimal_places=2)
+    duration = models.DecimalField(max_digits=5, decimal_places=2, default=0.0) # Total hours
     thumbnail = models.ImageField(upload_to='course_thumbnails/')
     intro_video = models.FileField(upload_to='course_videos/', blank=True, null=True)
     is_published = models.BooleanField(default=False)
@@ -41,170 +36,129 @@ class Course(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title)
+            if Course.objects.filter(slug=base_slug).exists():
+                self.slug = f"{base_slug}-{uuid.uuid4().hex[:6]}"
+            else:
+                self.slug = base_slug
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.title
 
+    @property
+    def total_lectures_count(self):
+        return Lecture.objects.filter(section__course=self).count()
+
+# --- 2. SECTION MODEL ---
 class Section(models.Model):
     course = models.ForeignKey(Course, related_name='sections', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    order = models.PositiveIntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    description = models.TextField(blank=True, null=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
     class Meta:
         ordering = ['order']
-        unique_together = ['course', 'order']
 
     def __str__(self):
-        return f"{self.course.title} - Section {self.order}: {self.title}"
+        return f"{self.course.title} - {self.title}"
 
+# --- 3. LECTURE MODEL ---
 class Lecture(models.Model):
-    QUALITY_CHOICES = [
-        ('1080p', '1080p'),
-        ('720p', '720p'),
-        ('480p', '480p'),
-        ('360p', '360p'),
+    PROCESSING_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
     ]
 
     section = models.ForeignKey(Section, related_name='lectures', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-
-    # Direct MP4 video upload
-    video_file = models.FileField(upload_to='lecture_videos/', blank=True, null=True)
-
-    # HLS playlist and segments (optional - for advanced streaming)
-    hls_playlist = models.FileField(upload_to='lecture_videos/hls/', blank=True, null=True)
-
-    # Processed video qualities (optional)
-    video_1080p = models.FileField(upload_to='lecture_videos/1080p/', blank=True, null=True)
-    video_720p = models.FileField(upload_to='lecture_videos/720p/', blank=True, null=True)
-    video_480p = models.FileField(upload_to='lecture_videos/480p/', blank=True, null=True)
-    video_360p = models.FileField(upload_to='lecture_videos/360p/', blank=True, null=True)
-
-    # Processing status
-    processing_status = models.CharField(max_length=20, choices=[
-        ('pending', 'Pending'),
-        ('processing', 'Processing'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
-        ('direct', 'Direct MP4'),  # New status for direct uploads
-    ], default='pending')
-
-    # Video metadata
-    duration = models.PositiveIntegerField(help_text="Duration in seconds", default=0)
-    file_size = models.BigIntegerField(help_text="File size in bytes", default=0)
-
+    order = models.PositiveIntegerField(default=0)
+    
+    # Video Files
+    video_file = models.FileField(upload_to='lecture_videos/original/', null=True, blank=True)
+    video_360p = models.FileField(upload_to='lecture_videos/360p/', null=True, blank=True)
+    video_480p = models.FileField(upload_to='lecture_videos/480p/', null=True, blank=True)
+    video_720p = models.FileField(upload_to='lecture_videos/720p/', null=True, blank=True)
+    video_1080p = models.FileField(upload_to='lecture_videos/1080p/', null=True, blank=True)
+    hls_playlist = models.FileField(upload_to='lecture_videos/hls/', null=True, blank=True)
+    
+    # Metadata
+    processing_status = models.CharField(max_length=20, choices=PROCESSING_CHOICES, default='pending')
+    duration = models.PositiveIntegerField(default=0) # Seconds
+    file_size = models.BigIntegerField(default=0)
     is_preview = models.BooleanField(default=False)
-    order = models.PositiveIntegerField()
+    
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
     class Meta:
         ordering = ['order']
-        unique_together = ['section', 'order']
 
     def __str__(self):
-        return f"{self.section.course.title} - Lecture {self.order}: {self.title}"
+        return self.title
 
+# --- 4. RESOURCE MODEL ---
 class Resource(models.Model):
-    RESOURCE_TYPES = [
-        ('pdf', 'PDF'),
-        ('doc', 'Document'),
-        ('zip', 'ZIP File'),
-        ('link', 'External Link'),
-        ('other', 'Other')
-    ]
-
     lecture = models.ForeignKey(Lecture, related_name='resources', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
-    resource_type = models.CharField(max_length=10, choices=RESOURCE_TYPES)
-    file = models.FileField(upload_to='course_resources/', blank=True, null=True)
+    resource_type = models.CharField(max_length=50, blank=True, null=True) # Added for Admin compatibility
+    file = models.FileField(upload_to='lecture_resources/', blank=True, null=True)
     external_link = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
-        return f"{self.lecture.title} - {self.title}"
+        return self.title
 
+# --- 5. ENROLLMENT MODEL ---
 class Enrollment(models.Model):
     user = models.ForeignKey(CustomUser, related_name='enrollments', on_delete=models.CASCADE)
     course = models.ForeignKey(Course, related_name='enrollments', on_delete=models.CASCADE)
     enrolled_at = models.DateTimeField(auto_now_add=True)
     completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
-    last_accessed = models.DateTimeField(null=True, blank=True)
+    # null=True, blank=True lagaya hai taaki migration error na aaye
+    last_accessed = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     class Meta:
         unique_together = ['user', 'course']
 
-    def __str__(self):
-        return f"{self.user.email} enrolled in {self.course.title}"
-
     @property
     def progress_percentage(self):
-        """Calculate overall course progress percentage"""
-        # Option 1: Time-based calculation (current)
-        # Option 2: Lecture-based calculation (simpler)
+        total = self.course.total_lectures_count
+        if total == 0: return 0.0
+        completed = self.progress.filter(completed=True).count()
+        return round((completed / total) * 100, 1)
 
-        # Use lecture-based calculation for clearer progress indicators
-        total_lectures = sum(section.lectures.count() for section in self.course.sections.all())
-        if total_lectures == 0:
-            return 0.0
+    def __str__(self):
+        return f"{self.user.email} - {self.course.title}"
 
-        completed_lectures = self.progress.filter(completed=True).count()
-        percentage = (completed_lectures / total_lectures) * 100
-        return round(min(percentage, 100.0), 1)
-
-    @property
-    def progress_percentage_time_based(self):
-        """Alternative: Calculate progress based on time watched"""
-        total_duration = sum(
-            lecture.duration for section in self.course.sections.all()
-            for lecture in section.lectures.all()
-        )
-
-        if total_duration == 0:
-            return 0.0
-
-        watched_duration = 0
-        for progress in self.progress.all():
-            if progress.completed:
-                watched_duration += progress.lecture.duration
-            else:
-                watched_time = min(progress.last_position / 60, progress.lecture.duration)
-                watched_duration += watched_time
-
-        percentage = (watched_duration / total_duration) * 100
-        return round(min(percentage, 100.0), 1)
-
+# --- 6. PROGRESS MODEL ---
 class Progress(models.Model):
     enrollment = models.ForeignKey(Enrollment, related_name='progress', on_delete=models.CASCADE)
-    lecture = models.ForeignKey(Lecture, related_name='progress', on_delete=models.CASCADE)
+    lecture = models.ForeignKey(Lecture, on_delete=models.CASCADE)
     completed = models.BooleanField(default=False)
-    last_position = models.PositiveIntegerField(default=0, help_text="Last video position in seconds")
+    last_position = models.PositiveIntegerField(default=0) 
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ['enrollment', 'lecture']
 
-    def __str__(self):
-        return f"{self.enrollment.user.email} - {self.lecture.title}"
-
+# --- 7. REVIEW MODEL ---
 class Review(models.Model):
     course = models.ForeignKey(Course, related_name='reviews', on_delete=models.CASCADE)
-    student = models.ForeignKey(CustomUser, related_name='reviews', on_delete=models.CASCADE)
-    rating = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(5)]
-    )
+    student = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
     class Meta:
         unique_together = ['course', 'student']
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"{self.student.email}'s review for {self.course.title}"

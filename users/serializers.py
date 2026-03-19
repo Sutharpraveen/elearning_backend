@@ -9,11 +9,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['email', 'username', 'password', 'confirm_password', 'role']
+        fields = ['email', 'username', 'first_name', 'last_name', 'password', 'confirm_password', 'role']
 
     def validate(self, data):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError("Passwords don't match")
+
+        # Validate required fields
+        required_fields = ['first_name', 'last_name']
+        for field in required_fields:
+            if not data.get(field):
+                raise serializers.ValidationError(f"{field.replace('_', ' ').title()} is required")
+
         return data
 
     def create(self, validated_data):
@@ -49,10 +56,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         # Add full image URL if profile image exists
-        if data.get('profile_image'):
-            request = self.context.get('request')
-            if request:
-                data['profile_image'] = request.build_absolute_uri(instance.profile_image.url)
+        if instance.profile_image and self.context.get('request'):
+            data['profile_image'] = self.context['request'].build_absolute_uri(instance.profile_image.url)
 
         # Add full name
         data['full_name'] = f"{instance.first_name} {instance.last_name}".strip() or instance.username
@@ -93,10 +98,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def validate_social_links(self, value):
         if value and not isinstance(value, dict):
             try:
-                # Try to convert string to dict if it's a JSON string
                 import json
                 return json.loads(value)
-            except:
+            except (TypeError, ValueError):
                 raise serializers.ValidationError("Social links must be a valid JSON object")
         return value or {}
 
@@ -119,7 +123,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             instance.save()
             return instance
         except Exception as e:
-            print(f"Error in update method: {str(e)}")
+            import logging
+            logging.getLogger(__name__).exception("Error in update method: %s", e)
             raise
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):

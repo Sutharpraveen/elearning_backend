@@ -1,7 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import WishlistViewSet, CartViewSet
-from .views import check_course_status
+from .views import WishlistViewSet, CartViewSet, check_course_status
 
 router = DefaultRouter()
 router.register('wishlist', WishlistViewSet, basename='wishlist')
