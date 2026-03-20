@@ -8,7 +8,7 @@
 # Django Core Framework
 # ===========================================
 Django==5.1.5
-djangorestframework==3.14.0
+djangorestframework==3.16.1
 djangorestframework-simplejwt==5.3.1
 drf-nested-routers==0.95.0
 
