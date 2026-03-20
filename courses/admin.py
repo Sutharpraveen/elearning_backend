@@ -66,11 +66,16 @@ class LectureAdmin(admin.ModelAdmin):
                     process_lecture_video_task.delay(obj.id)
                 except Exception as e:
                     import logging
+                    import threading
                     logger = logging.getLogger(__name__)
-                    logger.error(f"Failed to trigger video processing task: {e}")
+                    logger.warning(f"Celery failed ({e}), falling back to background thread for video {obj.id}")
+                    
+                    from .video_utils import process_lecture_video_universal
+                    thread = threading.Thread(target=process_lecture_video_universal, args=(obj.id,), daemon=True)
+                    thread.start()
                     
             transaction.on_commit(trigger_task)
-            messages.success(request, f'Video saved successfully. Processing started for "{obj.title}" (Requires Redis for background processing).')
+            messages.success(request, f'Video saved successfully. Processing started for "{obj.title}" in background.')
 
 
 @admin.register(Resource)
