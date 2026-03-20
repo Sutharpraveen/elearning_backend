@@ -60,8 +60,17 @@ class LectureAdmin(admin.ModelAdmin):
         if obj.video_file and obj.processing_status == 'pending':
             from .tasks import process_lecture_video_task
             from django.db import transaction
-            transaction.on_commit(lambda: process_lecture_video_task.delay(obj.id))
-            messages.success(request, f'Video processing started for "{obj.title}" in background.')
+            
+            def trigger_task():
+                try:
+                    process_lecture_video_task.delay(obj.id)
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Failed to trigger video processing task: {e}")
+                    
+            transaction.on_commit(trigger_task)
+            messages.success(request, f'Video saved successfully. Processing started for "{obj.title}" (Requires Redis for background processing).')
 
 
 @admin.register(Resource)
