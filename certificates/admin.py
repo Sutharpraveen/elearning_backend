@@ -107,6 +107,18 @@ class CertificateAdmin(admin.ModelAdmin):
         return '-'
     verification_link.short_description = 'Verification'
 
+    def save_model(self, request, obj, form, change):
+        """Save model and trigger certificate generation if file is missing"""
+        super().save_model(request, obj, form, change)
+        if not obj.certificate_file:
+            try:
+                from .certificate_generator import CertificateGenerator
+                generator = CertificateGenerator(obj)
+                generator.save_certificate_file('html')
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Failed to auto-generate certificate: {e}")
+
     actions = ['issue_certificates', 'revoke_certificates']
 
     def issue_certificates(self, request, queryset):
