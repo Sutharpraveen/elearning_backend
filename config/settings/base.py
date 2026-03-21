@@ -14,6 +14,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-me-in-producti
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = ['https://*.node222582.env-9018520.com', 'http://*.node222582.env-9018520.com'] # Default Jelastic/Bitss cloud domains
+CORS_ALLOW_ALL_ORIGINS = True # Allow cross-origin video streaming (HLS) from any player/app
 
 # --------------------------
 # Installed apps
