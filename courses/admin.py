@@ -58,21 +58,14 @@ class LectureAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
         if obj.video_file and obj.processing_status == 'pending':
-            from .tasks import process_lecture_video_task
             from django.db import transaction
+            import threading
+            from .video_utils import process_lecture_video_universal
             
             def trigger_task():
-                try:
-                    process_lecture_video_task.delay(obj.id)
-                except Exception as e:
-                    import logging
-                    import threading
-                    logger = logging.getLogger(__name__)
-                    logger.warning(f"Celery failed ({e}), falling back to background thread for video {obj.id}")
-                    
-                    from .video_utils import process_lecture_video_universal
-                    thread = threading.Thread(target=process_lecture_video_universal, args=(obj.id,), daemon=True)
-                    thread.start()
+                # Direct background thread processing (Bypass Celery)
+                thread = threading.Thread(target=process_lecture_video_universal, args=(obj.id,), daemon=True)
+                thread.start()
                     
             transaction.on_commit(trigger_task)
             messages.success(request, f'Video saved successfully. Processing started for "{obj.title}" in background.')

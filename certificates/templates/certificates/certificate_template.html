@@ -10,240 +10,431 @@
             margin: 0;
         }
 
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Great+Vibes&family=Montserrat:wght@300;400;600&display=swap');
+
         body {
-            font-family: {{ font_family|default:"Arial, sans-serif" }};
+            font-family: 'Montserrat', sans-serif;
             margin: 0;
-            padding: 40px;
-            background: linear-gradient(135deg, {{ primary_color|default:"#2C3E50" }}, {{ secondary_color|default:"#3498DB" }});
+            padding: 0;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: #e9ecef;
+            -webkit-print-color-adjust: exact;
         }
 
-        .certificate-container {
-            background: white;
-            border-radius: 20px;
-            padding: 60px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            text-align: center;
+        /* Certificate container */
+        .certificate-wrapper {
             position: relative;
-            max-width: 1000px;
-            width: 100%;
-            border: 10px solid {{ primary_color|default:"#2C3E50" }};
+            width: 1050px;
+            height: 740px;
+            background: #ffffff;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            box-sizing: border-box;
+            padding: 24px;
+            overflow: hidden;
         }
 
-        .certificate-header {
-            margin-bottom: 40px;
+        /* Faint Watermark */
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.03;
+            width: 500px;
+            height: 500px;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .watermark svg {
+            width: 100%;
+            height: 100%;
+            fill: {{ primary_color|default:"#0CB5A4" }};
+        }
+
+        /* Ornate Bordering */
+        .border-outer {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #d4af37; /* Gold */
+            box-sizing: border-box;
+            padding: 8px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .border-middle {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border: 10px solid {{ primary_color|default:"#0CB5A4" }};
+            box-sizing: border-box;
+            padding: 8px;
+            position: relative;
+        }
+        
+        .border-inner {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #d4af37;
+            box-sizing: border-box;
+            padding: 50px 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Corner Flourishes */
+        .corner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #d4af37;
+        }
+        .corner-tl { top: -4px; left: -4px; border-right: none; border-bottom: none; }
+        .corner-tr { top: -4px; right: -4px; border-left: none; border-bottom: none; }
+        .corner-bl { bottom: -4px; left: -4px; border-right: none; border-top: none; }
+        .corner-br { bottom: -4px; right: -4px; border-left: none; border-top: none; }
+
+        /* Typography & Layout */
+        .header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 25px;
+            z-index: 3;
+        }
+
+        .grad-icon {
+            width: 45px;
+            height: 45px;
+            fill: {{ primary_color|default:"#0CB5A4" }};
+            margin-bottom: 8px;
         }
 
         .organization-name {
-            font-size: {{ font_size_title|default:"48" }}px;
-            color: {{ primary_color|default:"#2C3E50" }};
-            font-weight: bold;
-            margin-bottom: 20px;
+            font-size: 22px;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            color: #2c3e50;
+            letter-spacing: 5px;
             text-transform: uppercase;
-            letter-spacing: 2px;
         }
 
         .certificate-title {
-            font-size: {{ font_size_title|default:"48" }}px;
-            color: {{ primary_color|default:"#2C3E50" }};
-            font-weight: bold;
-            margin: 30px 0;
+            font-family: 'Cinzel', serif;
+            font-size: 50px;
+            color: {{ primary_color|default:"#0CB5A4" }};
+            margin: 0;
             text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 700;
+            z-index: 3;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.05);
         }
 
         .certificate-subtitle {
-            font-size: {{ font_size_body|default:"24" }}px;
-            color: {{ secondary_color|default:"#3498DB" }};
-            margin: 20px 0;
-            font-style: italic;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            color: #7f8c8d;
+            margin-top: 15px;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            z-index: 3;
         }
 
         .recipient-name {
-            font-size: {{ font_size_title|default:"48" }}px;
-            color: {{ primary_color|default:"#2C3E50" }};
-            font-weight: bold;
-            margin: 40px 0;
-            text-transform: uppercase;
-            border-bottom: 3px solid {{ secondary_color|default:"#3498DB" }};
-            display: inline-block;
-            padding: 10px 20px;
+            font-family: 'Great Vibes', cursive;
+            font-size: 68px;
+            color: #1a252f;
+            border-bottom: 1px solid #d4af37;
+            padding-bottom: 0px;
+            margin-bottom: 30px;
+            min-width: 650px;
+            text-align: center;
+            z-index: 3;
         }
 
         .course-info {
-            font-size: {{ font_size_body|default:"24" }}px;
-            color: #333;
-            margin: 30px 0;
-            line-height: 1.6;
+            font-size: 16px;
+            color: #34495e;
+            max-width: 750px;
+            line-height: 1.7;
+            text-align: center;
+            margin-bottom: auto;
+            z-index: 3;
         }
 
         .course-title {
-            font-weight: bold;
-            color: {{ primary_color|default:"#2C3E50" }};
-        }
-
-        .certificate-details {
-            display: flex;
-            justify-content: space-around;
-            margin: 40px 0;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .detail-item {
-            text-align: center;
-        }
-
-        .detail-label {
-            font-size: 14px;
-            color: #666;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            color: {{ secondary_color|default:"#0083B0" }};
+            font-size: 24px;
+            margin: 12px 0;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 5px;
         }
 
-        .detail-value {
-            font-size: {{ font_size_body|default:"24" }}px;
-            color: {{ primary_color|default:"#2C3E50" }};
-            font-weight: bold;
-        }
-
-        .certificate-number {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            background: {{ primary_color|default:"#2C3E50" }};
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .signatures {
+        /* Signatures & Footer */
+        .footer-section {
             display: flex;
-            justify-content: space-around;
-            margin-top: 60px;
-            padding-top: 40px;
-            border-top: 2px solid #eee;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+            margin-top: 40px;
+            position: relative;
+            z-index: 3;
         }
 
-        .signature {
+        .signature-block {
             text-align: center;
-            flex: 1;
+            width: 220px;
         }
 
         .signature-line {
-            width: 200px;
-            height: 2px;
-            background: #333;
-            margin: 0 auto 10px;
+            width: 100%;
+            border-bottom: 1px solid #2c3e50;
+            margin-bottom: 10px;
         }
 
         .signature-name {
-            font-weight: bold;
-            font-size: {{ font_size_body|default:"24" }}px;
-            color: {{ primary_color|default:"#2C3E50" }};
+            font-family: 'Cinzel', serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
         }
 
         .signature-title {
-            font-size: 16px;
-            color: #666;
-            margin-top: 5px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
         }
 
-        .footer {
-            margin-top: 40px;
-            font-size: 14px;
-            color: #666;
+        /* Ultra Premium Gold Foil Seal */
+        .seal-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translateY(-10px);
         }
 
-        .verification-info {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            font-size: 12px;
-            color: #666;
+        .seal {
+            position: relative;
+            width: 96px;
+            height: 96px;
+            background: radial-gradient(ellipse at center, #ffd700 0%, #d4af37 50%, #aa771c 100%);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 800;
+            font-size: 8px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2), inset 0 0 0 2px rgba(255,255,255,0.5), inset 0 0 0 5px rgba(212,175,55,0.8);
+            border: 2px dashed #fff;
+            z-index: 10;
+        }
+        
+        .seal svg {
+            width: 22px;
+            height: 22px;
+            fill: #fff;
+            margin-bottom: 4px;
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+        }
+
+        /* Gold Ribbons under the seal */
+        .ribbon-left, .ribbon-right {
+            position: absolute;
+            background: linear-gradient(to bottom, #d4af37, #b8860b);
+            width: 22px;
+            height: 45px;
+            bottom: 5px;
+            z-index: 5;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        }
+        .ribbon-left {
+            left: 30px;
+            transform: rotate(20deg);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+        }
+        .ribbon-right {
+            right: 30px;
+            transform: rotate(-20deg);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+        }
+
+        /* Mock QR Code Details */
+        .qr-placeholder {
+            position: absolute;
+            bottom: -15px;
+            left: -15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .qr-box {
+            width: 40px;
+            height: 40px;
+            background: #fff;
+            border: 1px solid #bdc3c7;
+            padding: 4px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 2px;
+        }
+        .qr-box div { background: #2c3e50; }
+        .qr-box div:nth-child(2n) { background: transparent; }
+        .qr-box div:nth-child(3n) { background: {{ primary_color|default:"#0CB5A4" }}; }
+        
+        .qr-text {
+            font-size: 8px;
+            color: #7f8c8d;
+            text-align: left;
+            line-height: 1.4;
+            font-family: monospace;
+        }
+        
+        /* Central Issued Date */
+        .issued-date {
+            position: absolute;
+            bottom: 0px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: #95a5a6;
+            letter-spacing: 1px;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
         }
 
         @media print {
-            body {
-                background: white;
-            }
-
-            .certificate-container {
-                box-shadow: none;
-                border: 5px solid {{ primary_color|default:"#2C3E50" }};
-            }
+            body { background: white; padding: 0; }
+            .certificate-wrapper { box-shadow: none; width: 100%; height: 100%; }
         }
     </style>
 </head>
 <body>
-    <div class="certificate-container">
-        <div class="certificate-number">
-            {{ certificate_number }}
-        </div>
+    <div class="certificate-wrapper">
+        <div class="border-outer">
+            <div class="border-middle">
+                <div class="border-inner">
+                    
+                    <div class="corner corner-tl"></div>
+                    <div class="corner corner-tr"></div>
+                    <div class="corner corner-bl"></div>
+                    <div class="corner corner-br"></div>
 
-        <div class="certificate-header">
-            <div class="organization-name">{{ organization_name|default:"E-Learning Platform" }}</div>
-            <div class="certificate-title">{{ template.title|default:"Certificate of Completion" }}</div>
-            <div class="certificate-subtitle">{{ template.subtitle|default:"This certifies that" }}</div>
-        </div>
+                    <!-- Watermark Logo -->
+                    <div class="watermark">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 3L1 9L12 15L21 10.09V17H23V9L12 3ZM12 12.8L4.08 8.46L12 4.14L19.92 8.46L12 12.8ZM5 13.11V16.5C5 18.43 8.13 20 12 20C15.87 20 19 18.43 19 16.5V13.11C16.92 14.65 14.61 15.5 12 15.5C9.39 15.5 7.08 14.65 5 13.11Z"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- Header -->
+                    <div class="header">
+                        <svg class="grad-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 3L1 9L12 15L21 10.09V17H23V9L12 3ZM12 12.8L4.08 8.46L12 4.14L19.92 8.46L12 12.8ZM5 13.11V16.5C5 18.43 8.13 20 12 20C15.87 20 19 18.43 19 16.5V13.11C16.92 14.65 14.61 15.5 12 15.5C9.39 15.5 7.08 14.65 5 13.11Z"/>
+                        </svg>
+                        <div class="organization-name">{{ organization_name|default:"Tutbot Educations" }}</div>
+                    </div>
 
-        <div class="recipient-name">{{ student_name }}</div>
+                    <!-- Title -->
+                    <h1 class="certificate-title">{{ template.title|default:"Certificate of Completion" }}</h1>
+                    <div class="certificate-subtitle">{{ template.subtitle|default:"This is proudly presented to" }}</div>
 
-        <div class="course-info">
-            {% if template.header_text %}
-                <div>{{ template.header_text }}</div>
-            {% endif %}
-            <div class="course-title">{{ course_title }}</div>
-            {% if template.body_text %}
-                <div>{{ template.body_text }}</div>
-            {% endif %}
-        </div>
+                    <!-- Recipient -->
+                    <div class="recipient-name">{{ student_name }}</div>
 
-        <div class="certificate-details">
-            <div class="detail-item">
-                <div class="detail-label">Completion Date</div>
-                <div class="detail-value">{{ completion_date }}</div>
+                    <!-- Details -->
+                    <div class="course-info">
+                        {% if template.header_text %}
+                            <div>{{ template.header_text }}</div>
+                        {% else %}
+                            <div>In recognition of successfully clearing all requirements for</div>
+                        {% endif %}
+                        
+                        <div class="course-title">{{ course_title }}</div>
+                        
+                        {% if template.body_text %}
+                            <div>{{ template.body_text }}</div>
+                        {% else %}
+                            <div>And demonstrating exceptional dedication, excellence, and knowledge in the subject matter.</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="footer-section">
+                        <!-- Left Signature -->
+                        <div class="signature-block">
+                            {% if template.signature_1_image %}
+                                <img src="{{ template.signature_1_image.url }}" class="signature-img" alt="Signature 1">
+                            {% else %}
+                                <div style="height: 35px;"></div>
+                            {% endif %}
+                            <div class="signature-line"></div>
+                            <div class="signature-name">{{ signature_1_name|default:"Praveen" }}</div>
+                            <div class="signature-title">{{ signature_1_title|default:"Founder & CEO" }}</div>
+                            
+                            <!-- QR Placement -->
+                            <div class="qr-placeholder">
+                                <div class="qr-box"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+                                <div class="qr-text">
+                                    VERIFY AUTHENTICITY<br>
+                                    ID: {{ certificate_number }}<br>
+                                    TUTBOT.IN/VERIFY
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Center Seal -->
+                        <div class="seal-container">
+                            <div class="ribbon-left"></div>
+                            <div class="ribbon-right"></div>
+                            <div class="seal">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1ZM12 20.91C8.03 19.78 5 15.65 5 11.08V6.43L12 3.32L19 6.43V11.08C19 15.65 15.97 19.78 12 20.91ZM10.93 15.66L7.4 12.13L8.81 10.72L10.93 12.84L15.19 8.58L16.6 10L10.93 15.66Z"/>
+                                </svg>
+                                OFFICIAL<br>SEAL
+                            </div>
+                            
+                            <div class="issued-date">Date: {{ completion_date }}</div>
+                        </div>
+
+                        <!-- Right Signature -->
+                        <div class="signature-block">
+                            {% if template.signature_2_image %}
+                                <img src="{{ template.signature_2_image.url }}" class="signature-img" alt="Signature 2">
+                            {% else %}
+                                <div style="height: 35px;"></div>
+                            {% endif %}
+                            <div class="signature-line"></div>
+                            <div class="signature-name">{{ signature_2_name|default:"Course Instructor" }}</div>
+                            <div class="signature-title">{{ signature_2_title|default:"Lead Educator" }}</div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
-            <div class="detail-item">
-                <div class="detail-label">Grade</div>
-                <div class="detail-value">{{ grade }}</div>
-            </div>
-            <div class="detail-item">
-                <div class="detail-label">Score</div>
-                <div class="detail-value">{{ completion_percentage }}%</div>
-            </div>
-        </div>
-
-        <div class="signatures">
-            <div class="signature">
-                <div class="signature-line"></div>
-                <div class="signature-name">{{ signature_1_name|default:"Director Name" }}</div>
-                <div class="signature-title">{{ signature_1_title|default:"Director" }}</div>
-            </div>
-            <div class="signature">
-                <div class="signature-line"></div>
-                <div class="signature-name">{{ signature_2_name|default:"Instructor Name" }}</div>
-                <div class="signature-title">{{ signature_2_title|default:"Instructor" }}</div>
-            </div>
-        </div>
-
-        <div class="footer">
-            {% if template.footer_text %}
-                <div>{{ template.footer_text }}</div>
-            {% endif %}
-            <div>Issued on: {{ completion_date }}</div>
-        </div>
-
-        <div class="verification-info">
-            <strong>Certificate ID:</strong> {{ certificate.certificate_id }}<br>
-            <strong>Verification:</strong> {{ certificate.verification_url }}
         </div>
     </div>
 </body>
