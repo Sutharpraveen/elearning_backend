@@ -12,7 +12,8 @@ load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-me-in-production')
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = ['https://*.node222582.env-9018520.com', 'http://*.node222582.env-9018520.com'] # Default Jelastic/Bitss cloud domains
 
 # --------------------------
 # Installed apps
