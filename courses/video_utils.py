@@ -8,8 +8,15 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from .models import Lecture
+import shutil
 
 logger = logging.getLogger(__name__)
+
+# Determine paths for local ffmpeg/ffprobe binaries uploaded to the project root, fallback to system
+local_ffmpeg = os.path.join(settings.BASE_DIR, 'ffmpeg')
+local_ffprobe = os.path.join(settings.BASE_DIR, 'ffprobe')
+FFMPEG_CMD = local_ffmpeg if os.path.exists(local_ffmpeg) else (shutil.which('ffmpeg') or 'ffmpeg')
+FFPROBE_CMD = local_ffprobe if os.path.exists(local_ffprobe) else (shutil.which('ffprobe') or 'ffprobe')
 
 class UniversalVideoProcessor:
     """
@@ -40,7 +47,7 @@ class UniversalVideoProcessor:
         """Get video duration and metadata using ffprobe"""
         try:
             cmd = [
-                'ffprobe', '-v', 'quiet', '-print_format', 'json',
+                FFPROBE_CMD, '-v', 'quiet', '-print_format', 'json',
                 '-show_format', '-show_streams', video_path
             ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -57,7 +64,7 @@ class UniversalVideoProcessor:
         """Create a specific quality MP4 version"""
         try:
             cmd = [
-                'ffmpeg', '-i', input_path,
+                FFMPEG_CMD, '-i', input_path,
                 '-vf', f'scale=-2:{config["height"]}',
                 '-c:v', 'libx264', '-profile:v', 'main', '-level', '3.1',
                 '-b:v', config['bitrate'], '-maxrate', config['bitrate'],
@@ -90,7 +97,7 @@ class UniversalVideoProcessor:
                 playlist_path = os.path.join(hls_dir_path, playlist_name)
 
                 cmd = [
-                    'ffmpeg', '-i', mp4_path,
+                    FFMPEG_CMD, '-i', mp4_path,
                     '-codec:', 'copy', '-start_number', '0',
                     '-hls_time', '10', '-hls_list_size', '0',
                     '-f', 'hls', '-y', playlist_path
