@@ -45,7 +45,7 @@ class LectureSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'video_file',
             'video_urls', 'processing_status',
             'duration', 'duration_display', 'file_size',
-            'order', 'resources', 'created_at', 'updated_at'
+            'order', 'is_preview', 'resources', 'created_at', 'updated_at'
         ]
         read_only_fields = ['video_urls', 'processing_status', 'file_size']
 
@@ -60,6 +60,32 @@ class LectureSerializer(serializers.ModelSerializer):
             return {}
 
         base_url = request.build_absolute_uri('/').rstrip('/')
+
+        # Access check for non-preview videos
+        if not obj.is_preview:
+            user = request.user
+            has_access = False
+            
+            if user and user.is_authenticated:
+                course_id = obj.section.course_id
+                
+                # Cache enrollment status in context to avoid N+1 queries
+                cache_key = f'has_access_{course_id}'
+                if cache_key not in self.context:
+                    from .models import Course, Enrollment
+                    is_instructor = Course.objects.filter(id=course_id, instructor=user).exists()
+                    is_enrolled = Enrollment.objects.filter(user=user, course_id=course_id).exists()
+                    self.context[cache_key] = is_instructor or is_enrolled
+                
+                has_access = self.context[cache_key]
+                
+            if not has_access:
+                return {
+                    'status': 'locked',
+                    'stream_type': None,
+                    'primary_url': None,
+                    'message': 'Please enroll in the course to access this lecture.'
+                }
 
         if obj.processing_status != 'completed':
             return {

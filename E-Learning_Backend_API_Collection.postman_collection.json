@@ -235,10 +235,14 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/api/courses/search/?q=python",
+              "raw": "{{base_url}}/api/courses/search/?q=python&category_id={{category_id}}&category=",
               "host": ["{{base_url}}"],
               "path": ["api", "courses", "search", ""],
-              "query": [{ "key": "q", "value": "python" }]
+              "query": [
+                { "key": "q", "value": "python", "description": "Keyword; matches title, description, category name/description, instructor" },
+                { "key": "category_id", "value": "{{category_id}}", "description": "Optional: restrict to this category id" },
+                { "key": "category", "value": "", "description": "Optional: category name contains (e.g. Python)" }
+              ]
             }
           }
         },

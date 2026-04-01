@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Q, Count, Avg
+from django.db.models import Q, Count, Avg, Case, When, IntegerField, Value
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from rest_framework import viewsets, status, filters
@@ -21,6 +21,7 @@ from .serializers import (
 )
 from .tasks import process_lecture_video_task
 from users.models import CustomUser
+from categories.models import Category
 
 logger = logging.getLogger(__name__)
 
@@ -701,22 +702,28 @@ def home_page_courses(request):
             pass
 
         if search:
-            courses = courses.filter(
-                Q(title__icontains=search) |
-                Q(description__icontains=search) |
-                Q(instructor__first_name__icontains=search) |
-                Q(category__name__icontains=search)
-            )
-
-        sort_map = {
-            'newest': '-created_at',
-            'oldest': 'created_at',
-            'price_low': 'discounted_price',
-            'price_high': '-discounted_price',
-            'rating': '-avg_rating',
-            'popular': '-total_students'
-        }
-        courses = courses.order_by(sort_map.get(sort_by, '-created_at'))
+            courses = courses.filter(_course_search_q(search))
+            courses = courses.annotate(_search_rank=_udemy_search_rank_case(search))
+            sort_map = {
+                'newest': ('_search_rank', '-created_at'),
+                'oldest': ('_search_rank', 'created_at'),
+                'price_low': ('_search_rank', 'discounted_price'),
+                'price_high': ('_search_rank', '-discounted_price'),
+                'rating': ('_search_rank', '-avg_rating'),
+                'popular': ('_search_rank', '-total_students'),
+                'relevance': ('_search_rank', '-total_students', '-avg_rating'),
+            }
+            courses = courses.order_by(*sort_map.get(sort_by, sort_map['relevance']))
+        else:
+            sort_map = {
+                'newest': '-created_at',
+                'oldest': 'created_at',
+                'price_low': 'discounted_price',
+                'price_high': '-discounted_price',
+                'rating': '-avg_rating',
+                'popular': '-total_students',
+            }
+            courses = courses.order_by(sort_map.get(sort_by, '-created_at'))
 
         paginator = Paginator(courses, page_size)
         try:
@@ -764,40 +771,213 @@ def home_page_courses(request):
         return Response({'status': 'error', 'message': 'Could not load courses.'}, status=500)
 
 
+def _single_keyword_course_q(keyword):
+    """One keyword: course text + instructor name/headline + category (Udemy-style breadth)."""
+    if not keyword:
+        return Q(pk=0)  # no match
+    return (
+        Q(title__icontains=keyword) |
+        Q(description__icontains=keyword) |
+        Q(learning_objectives__icontains=keyword) |
+        Q(requirements__icontains=keyword) |
+        Q(target_audience__icontains=keyword) |
+        Q(instructor__first_name__icontains=keyword) |
+        Q(instructor__last_name__icontains=keyword) |
+        Q(instructor__username__icontains=keyword) |
+        Q(instructor__headline__icontains=keyword) |
+        Q(category__name__icontains=keyword) |
+        Q(category__description__icontains=keyword)
+    )
+
+
+def _udemy_search_rank_case(search_text):
+    """Relevance: 0 best — order_by this field ascending. Title first, then instructor name."""
+    q = (search_text or '').strip()
+    if not q:
+        return Value(99)
+    tokens = [t for t in q.split() if t]
+    whens = [
+        When(title__istartswith=q, then=Value(0)),
+        When(title__icontains=q, then=Value(1)),
+    ]
+    if len(tokens) >= 2:
+        whens.append(
+            When(
+                Q(instructor__first_name__icontains=tokens[0])
+                & Q(instructor__last_name__icontains=tokens[-1]),
+                then=Value(2),
+            )
+        )
+        inst_rank = 3
+    else:
+        inst_rank = 2
+    whens.append(
+        When(
+            Q(instructor__first_name__icontains=q)
+            | Q(instructor__last_name__icontains=q)
+            | Q(instructor__username__icontains=q)
+            | Q(instructor__headline__icontains=q),
+            then=Value(inst_rank),
+        )
+    )
+    cat_rank = inst_rank + 1
+    whens.append(When(category__name__icontains=q, then=Value(cat_rank)))
+    return Case(*whens, default=Value(cat_rank + 1), output_field=IntegerField())
+
+
+def _course_search_q(text):
+    """OR across words: e.g. 'music theory' matches category Music OR title with Theory."""
+    if not text:
+        return Q()
+    tokens = [t.strip() for t in text.split() if t.strip()]
+    if not tokens:
+        return Q()
+    if len(tokens) == 1:
+        return _single_keyword_course_q(tokens[0])
+    q = Q()
+    any_token = False
+    for token in tokens:
+        q |= _single_keyword_course_q(token)
+        any_token = True
+    if not any_token:
+        return _single_keyword_course_q(text.strip())
+    return q
+
+
+def _category_tokens_q(text):
+    """Categories whose name or description matches any word in text."""
+    if not text:
+        return Q(pk=0)
+    tokens = [t.strip() for t in text.split() if t.strip()]
+    if not tokens:
+        return Q(name__icontains=text) | Q(description__icontains=text)
+    q = Q()
+    for token in tokens:
+        q |= Q(name__icontains=token) | Q(description__icontains=token)
+    return q
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def global_search(request):
-    """Comprehensive search across courses and instructors."""
+    """Search courses, instructors, and categories.
+
+    Query params:
+      - q: keyword(s) — matches title, description, objectives, category name/description, instructor
+      - category_id: only courses in this category (can combine with q)
+      - category: filter by category name (icontains), e.g. ?category=Python
+    At least one of q, category_id, or category is required.
+    """
     try:
         query = request.GET.get('q', '').strip()
-        if not query:
-            return Response({
-                'status': 'error',
-                'message': 'Search term is required.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        category_name_filter = request.GET.get('category', '').strip()
+        category_id_raw = request.GET.get('category_id')
+        category_id = None
+        if category_id_raw not in (None, ''):
+            try:
+                category_id = int(category_id_raw)
+            except (ValueError, TypeError):
+                return Response(
+                    {'status': 'error', 'message': 'category_id must be a number.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        courses = Course.objects.filter(
-            Q(is_published=True) & (
-                Q(title__icontains=query) |
-                Q(description__icontains=query) |
-                Q(instructor__first_name__icontains=query) |
-                Q(category__name__icontains=query)
+        if not query and category_id is None and not category_name_filter:
+            return Response(
+                {
+                    'status': 'error',
+                    'message': 'Provide q (search text) and/or category_id or category (name).',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        ).select_related('instructor', 'category').annotate(
+
+        courses_qs = Course.objects.filter(is_published=True).select_related(
+            'instructor', 'category'
+        ).annotate(
             total_students=Count('enrollments', distinct=True),
             avg_rating=Avg('reviews__rating')
-        )[:20]
+        )
 
-        instructors = CustomUser.objects.filter(
-            Q(role='instructor') & (
+        if category_id is not None:
+            courses_qs = courses_qs.filter(category_id=category_id)
+        if category_name_filter:
+            courses_qs = courses_qs.filter(category__name__icontains=category_name_filter)
+
+        if query:
+            courses_qs = courses_qs.filter(_course_search_q(query))
+            courses_qs = courses_qs.annotate(_search_rank=_udemy_search_rank_case(query)).order_by(
+                '_search_rank', '-total_students', '-avg_rating'
+            )
+        else:
+            courses_qs = courses_qs.order_by('-total_students', '-avg_rating')
+
+        courses = courses_qs[:20]
+
+        instructors_data = []
+        if query:
+            query_tokens = [t for t in query.split() if t]
+            instructor_match_q = (
                 Q(first_name__icontains=query) |
                 Q(last_name__icontains=query) |
-                Q(expertise__icontains=query)
+                Q(expertise__icontains=query) |
+                Q(username__icontains=query) |
+                Q(headline__icontains=query) |
+                Q(bio__icontains=query)
             )
-        ).annotate(
-            total_courses=Count('course', filter=Q(course__is_published=True), distinct=True),
-            total_students_count=Count('course__enrollments', filter=Q(course__is_published=True), distinct=True)
-        )[:10]
+            # Better full-name support: "first last" or "last first"
+            if len(query_tokens) >= 2:
+                first_tok = query_tokens[0]
+                last_tok = query_tokens[-1]
+                instructor_match_q |= (
+                    Q(first_name__icontains=first_tok) & Q(last_name__icontains=last_tok)
+                ) | (
+                    Q(first_name__icontains=last_tok) & Q(last_name__icontains=first_tok)
+                )
+
+            instructors = CustomUser.objects.filter(
+                Q(role='instructor') & instructor_match_q
+            ).annotate(
+                total_courses=Count('course', filter=Q(course__is_published=True), distinct=True),
+                total_students_count=Count(
+                    'course__enrollments', filter=Q(course__is_published=True), distinct=True
+                )
+            )[:10]
+
+            for instructor in instructors:
+                instructors_data.append({
+                    'id': instructor.id,
+                    'type': 'instructor',
+                    'name': instructor.get_full_name(),
+                    'profile_image': (
+                        instructor.profile_image.url
+                        if (hasattr(instructor, 'profile_image') and instructor.profile_image)
+                        else None
+                    ),
+                    'headline': getattr(instructor, 'headline', ''),
+                    'expertise': getattr(instructor, 'expertise', ''),
+                    'total_courses': instructor.total_courses,
+                    'total_students': instructor.total_students_count,
+                })
+
+        matching_categories = []
+        if query:
+            cats = (
+                Category.objects.filter(_category_tokens_q(query))
+                .annotate(
+                    published_course_count=Count(
+                        'courses', filter=Q(courses__is_published=True), distinct=True
+                    )
+                )
+                .order_by('-published_course_count')[:15]
+            )
+            for cat in cats:
+                matching_categories.append({
+                    'id': cat.id,
+                    'type': 'category',
+                    'name': cat.name,
+                    'description': (cat.description or '')[:200],
+                    'total_courses': cat.published_course_count,
+                })
 
         courses_data = []
         for course in courses:
@@ -814,29 +994,26 @@ def global_search(request):
                 'instructor': {
                     'id': course.instructor.id,
                     'name': course.instructor.get_full_name(),
-                    'profile_image': course.instructor.profile_image.url if (hasattr(course.instructor, 'profile_image') and course.instructor.profile_image) else None
+                    'profile_image': course.instructor.profile_image.url if (
+                        hasattr(course.instructor, 'profile_image') and course.instructor.profile_image
+                    ) else None,
                 },
-                'category': {'id': course.category.id, 'name': course.category.name}
+                'category': {'id': course.category.id, 'name': course.category.name},
             })
 
-        instructors_data = []
-        for instructor in instructors:
-            instructors_data.append({
-                'id': instructor.id,
-                'type': 'instructor',
-                'name': instructor.get_full_name(),
-                'profile_image': instructor.profile_image.url if (hasattr(instructor, 'profile_image') and instructor.profile_image) else None,
-                'headline': getattr(instructor, 'headline', ""),
-                'expertise': getattr(instructor, 'expertise', ""),
-                'total_courses': instructor.total_courses,
-                'total_students': instructor.total_students_count
-            })
+        combined_results = courses_data + instructors_data
 
         return Response({
             'status': 'success',
             'query': query,
-            'total_results': len(courses_data) + len(instructors_data),
-            'results': courses_data + instructors_data
+            'filters': {
+                'category_id': category_id,
+                'category': category_name_filter or None,
+            },
+            'matching_categories': matching_categories,
+            'total_matching_categories': len(matching_categories),
+            'total_results': len(combined_results),
+            'results': combined_results,
         })
 
     except Exception as e:

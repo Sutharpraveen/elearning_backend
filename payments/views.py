@@ -92,12 +92,13 @@ def verify_payment(request):
 
                 Enrollment.objects.get_or_create(user=user, course=course)
 
-                if hasattr(user, 'user_cart'):
-                    CartItem.objects.filter(cart=user.user_cart, course=course).delete()
+                # Cart related_name is 'cart' (not user_cart)
+                CartItem.objects.filter(cart__user=user, course=course).delete()
 
                 try:
                     wishlist = Wishlist.objects.get(user=user)
-                    wishlist.courses.remove(course)
+                    if wishlist.courses.filter(pk=course.pk).exists():
+                        wishlist.courses.remove(course)
                 except Wishlist.DoesNotExist:
                     pass
 
@@ -201,12 +202,12 @@ def verify_multi_payment(request):
                 for course in courses:
                     Enrollment.objects.get_or_create(user=user, course=course)
 
-                    if hasattr(user, 'user_cart'):
-                        CartItem.objects.filter(cart=user.user_cart, course=course).delete()
+                    CartItem.objects.filter(cart__user=user, course=course).delete()
 
                     try:
                         wishlist = Wishlist.objects.get(user=user)
-                        wishlist.courses.remove(course)
+                        if wishlist.courses.filter(pk=course.pk).exists():
+                            wishlist.courses.remove(course)
                     except Wishlist.DoesNotExist:
                         pass
 

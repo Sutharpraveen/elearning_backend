@@ -38,12 +38,14 @@ class LectureAdminForm(forms.ModelForm):
 @admin.register(Lecture)
 class LectureAdmin(admin.ModelAdmin):
     form = LectureAdminForm
-    list_display = ['title', 'section', 'order', 'processing_status', 'duration']
-    list_filter = ['processing_status', 'section__course']
+    # 1. list_display mein add karo taaki bahar list mein dikhe
+    list_display = ['title', 'section', 'order', 'is_preview', 'processing_status']
+    list_filter = ['is_preview', 'processing_status', 'section__course']
     readonly_fields = ['processing_status', 'duration', 'file_size', 'created_at']
 
     fieldsets = (
-        ('Basic Info', {'fields': ('section', 'title', 'description', 'order')}),
+        # 2. Yahan 'is_preview' ko 'order' ke baad add karo
+        ('Basic Info', {'fields': ('section', 'title', 'description', 'order', 'is_preview')}),
         ('Video Upload', {'fields': ('video_file', 'processing_status', 'duration', 'file_size')}),
         ('Processed Versions (Read Only)', {
             'fields': ('video_1080p', 'video_720p', 'video_480p', 'video_360p', 'hls_playlist'),
