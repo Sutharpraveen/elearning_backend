@@ -228,5 +228,7 @@ def verify_multi_payment(request):
                             status=status.HTTP_404_NOT_FOUND)
 
     except Exception as e:
-        return Response({'status': 'error', 'message': str(e)},
+        import traceback
+        traceback_str = ''.join(traceback.format_exception(None, e, e.__traceback__))
+        return Response({'status': 'error', 'message': traceback_str},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
