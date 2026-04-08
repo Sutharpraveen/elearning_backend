@@ -61,9 +61,9 @@ def create_payment(request):
 @permission_classes([IsAuthenticated])
 def verify_payment(request):
     try:
-        razorpay_order_id = request.data.get('razorpay_order_id')
-        razorpay_payment_id = request.data.get('razorpay_payment_id')
-        razorpay_signature = request.data.get('razorpay_signature')
+        razorpay_order_id = request.data.get('razorpay_order_id') or request.data.get('order_id') or request.data.get('orderId')
+        razorpay_payment_id = request.data.get('razorpay_payment_id') or request.data.get('payment_id') or request.data.get('paymentId')
+        razorpay_signature = request.data.get('razorpay_signature') or request.data.get('signature')
 
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
             return Response({'status': 'error', 'message': 'Missing required parameters'},
@@ -169,9 +169,9 @@ def create_multi_payment(request):
 @permission_classes([IsAuthenticated])
 def verify_multi_payment(request):
     try:
-        razorpay_order_id = request.data.get('razorpay_order_id')
-        razorpay_payment_id = request.data.get('razorpay_payment_id')
-        razorpay_signature = request.data.get('razorpay_signature')
+        razorpay_order_id = request.data.get('razorpay_order_id') or request.data.get('order_id') or request.data.get('orderId')
+        razorpay_payment_id = request.data.get('razorpay_payment_id') or request.data.get('payment_id') or request.data.get('paymentId')
+        razorpay_signature = request.data.get('razorpay_signature') or request.data.get('signature')
 
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
             return Response({'status': 'error', 'message': 'Missing required parameters'},
@@ -183,8 +183,8 @@ def verify_multi_payment(request):
 
         try:
             client.utility.verify_payment_signature(params_dict)
-        except Exception:
-            return Response({'status': 'error', 'message': 'Invalid signature'},
+        except Exception as e:
+            return Response({'status': 'error', 'message': f'Invalid signature: {str(e)}'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -216,6 +216,8 @@ def verify_multi_payment(request):
                                  'data': {'payment_id': multi_payment.id,
                                           'order_id': multi_payment.razorpay_order_id,
                                           'status': multi_payment.status,
+                                          'course_id': courses.first().id if courses.exists() else None,
+                                          'course_title': courses.first().title if courses.exists() else None,
                                           'course_ids': [c.id for c in courses],
                                           'course_titles': [c.title for c in courses],
                                           'actions_taken': {'enrolled': True,
