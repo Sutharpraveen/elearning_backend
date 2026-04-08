@@ -61,12 +61,12 @@ def create_payment(request):
 @permission_classes([IsAuthenticated])
 def verify_payment(request):
     try:
-        razorpay_order_id = request.data.get('razorpay_order_id') or request.data.get('order_id') or request.data.get('orderId')
-        razorpay_payment_id = request.data.get('razorpay_payment_id') or request.data.get('payment_id') or request.data.get('paymentId')
-        razorpay_signature = request.data.get('razorpay_signature') or request.data.get('signature')
+        razorpay_order_id = request.data.get('razorpay_order_id') or request.data.get('order_id') or request.data.get('orderId') or request.data.get('razorpayOrderId')
+        razorpay_payment_id = request.data.get('razorpay_payment_id') or request.data.get('payment_id') or request.data.get('paymentId') or request.data.get('razorpayPaymentId')
+        razorpay_signature = request.data.get('razorpay_signature') or request.data.get('signature') or request.data.get('razorpaySignature')
 
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
-            return Response({'status': 'error', 'message': 'Missing required parameters'},
+            return Response({'status': 'error', 'message': f'Missing required parameters. Received keys: {list(request.data.keys())}'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         params_dict = {'razorpay_order_id': razorpay_order_id,
@@ -169,12 +169,12 @@ def create_multi_payment(request):
 @permission_classes([IsAuthenticated])
 def verify_multi_payment(request):
     try:
-        razorpay_order_id = request.data.get('razorpay_order_id') or request.data.get('order_id') or request.data.get('orderId')
-        razorpay_payment_id = request.data.get('razorpay_payment_id') or request.data.get('payment_id') or request.data.get('paymentId')
-        razorpay_signature = request.data.get('razorpay_signature') or request.data.get('signature')
+        razorpay_order_id = request.data.get('razorpay_order_id') or request.data.get('order_id') or request.data.get('orderId') or request.data.get('razorpayOrderId')
+        razorpay_payment_id = request.data.get('razorpay_payment_id') or request.data.get('payment_id') or request.data.get('paymentId') or request.data.get('razorpayPaymentId')
+        razorpay_signature = request.data.get('razorpay_signature') or request.data.get('signature') or request.data.get('razorpaySignature')
 
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
-            return Response({'status': 'error', 'message': 'Missing required parameters'},
+            return Response({'status': 'error', 'message': f'Missing required parameters. Received keys: {list(request.data.keys())}'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         params_dict = {'razorpay_order_id': razorpay_order_id,
