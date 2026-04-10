@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.db.models import F
 from .models import Wishlist, Cart, CartItem, Coupon
 from .serializers import WishlistSerializer, CartSummarySerializer, CartItemSerializer
 from courses.models import Course
@@ -16,7 +17,9 @@ class WishlistViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Wishlist.objects.filter(user=self.request.user)
+        return Wishlist.objects.filter(user=self.request.user).prefetch_related(
+            'courses__instructor', 'courses__category'
+        )
 
     def get_object(self):
         wishlist, _ = Wishlist.objects.get_or_create(user=self.request.user)
@@ -152,7 +155,9 @@ class CartViewSet(viewsets.ModelViewSet):
     serializer_class = CartSummarySerializer
 
     def get_queryset(self):
-        return Cart.objects.filter(user=self.request.user)
+        return Cart.objects.filter(user=self.request.user).prefetch_related(
+            'items__course__instructor', 'items__course__category'
+        )
 
     def get_object(self):
         cart, _ = Cart.objects.get_or_create(user=self.request.user)
@@ -300,10 +305,9 @@ class CartViewSet(viewsets.ModelViewSet):
             cart.coupon_discount = coupon.discount_percentage
             cart.save()
 
-            # Add user to coupon users and increment usage
+            # Add user to coupon users and increment usage atomically
             coupon.users_used.add(request.user)
-            coupon.used_count += 1
-            coupon.save()
+            Coupon.objects.filter(pk=coupon.pk).update(used_count=F('used_count') + 1)
 
             return Response({
                 "status": "success",
@@ -365,10 +369,11 @@ class CartViewSet(viewsets.ModelViewSet):
 
             # Get the coupon and decrease its usage count
             try:
-                coupon = Coupon.objects.get(code=cart.coupon_code)
-                coupon.used_count = max(0, coupon.used_count - 1)  # Don't go below 0
-                coupon.save()
-            except Coupon.DoesNotExist:
+                # Decrement atomically, never go below 0
+                Coupon.objects.filter(code=cart.coupon_code, used_count__gt=0).update(
+                    used_count=F('used_count') - 1
+                )
+            except Exception:
                 pass  # Coupon might have been deleted, that's okay
 
             # Clear coupon from cart

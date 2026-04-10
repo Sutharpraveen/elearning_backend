@@ -110,12 +110,17 @@ class LoginView(APIView):
 
             if user:
                 try:
-                    user_tokens = OutstandingToken.objects.filter(user=user)
-                    for token in user_tokens:
-                        try:
-                            BlacklistedToken.objects.get_or_create(token=token)
-                        except Exception:
-                            pass
+                    # Bulk blacklist all old tokens in 2 queries instead of N get_or_creates
+                    user_tokens = list(OutstandingToken.objects.filter(user=user))
+                    if user_tokens:
+                        already_blacklisted = set(
+                            BlacklistedToken.objects.filter(token__in=user_tokens).values_list('token_id', flat=True)
+                        )
+                        new_blacklists = [
+                            BlacklistedToken(token=t) for t in user_tokens if t.id not in already_blacklisted
+                        ]
+                        if new_blacklists:
+                            BlacklistedToken.objects.bulk_create(new_blacklists, ignore_conflicts=True)
                 except Exception as e:
                     logger.warning("Error blacklisting old tokens: %s", e)
 
@@ -371,16 +376,26 @@ class ProfileStatisticsView(APIView):
             user = request.user
             from courses.models import Enrollment, Course
             from payments.models import Payment
+            from django.db.models import Count, Q
 
-            enrollments = Enrollment.objects.filter(user=user)
-            total_enrollments = enrollments.count()
-            completed_courses = enrollments.filter(completed=True).count()
+            # Single query for enrollment stats
+            enrollment_stats = Enrollment.objects.filter(user=user).aggregate(
+                total_enrollments=Count('id'),
+                completed_courses=Count('id', filter=Q(completed=True))
+            )
+            total_enrollments = enrollment_stats['total_enrollments'] or 0
+            completed_courses = enrollment_stats['completed_courses'] or 0
 
             created_courses = 0
             total_students = 0
             if user.role == 'instructor':
-                created_courses = Course.objects.filter(instructor=user).count()
-                total_students = Enrollment.objects.filter(course__instructor=user).count()
+                # Single query for instructor stats
+                inst_stats = Course.objects.filter(instructor=user).aggregate(
+                    created_courses=Count('id'),
+                    total_students=Count('enrollments', distinct=True)
+                )
+                created_courses = inst_stats['created_courses'] or 0
+                total_students = inst_stats['total_students'] or 0
 
             total_payments = Payment.objects.filter(user=user, status='completed').count()
 

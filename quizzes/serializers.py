@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db.models import Sum
 from .models import Quiz, Question, QuizAttempt
 
 
@@ -33,7 +34,8 @@ class QuizSerializer(serializers.ModelSerializer):
         return obj.questions.count()
 
     def get_total_points(self, obj):
-        return sum(question.points for question in obj.questions.all())
+        result = obj.questions.aggregate(total=Sum('points'))['total']
+        return result or 0
 
 
 class QuizAttemptSerializer(serializers.ModelSerializer):

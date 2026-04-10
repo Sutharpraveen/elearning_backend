@@ -3,6 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
+from django.utils import timezone
 from .models import Quiz, Question, QuizAttempt
 from .serializers import QuizSerializer, QuestionSerializer, QuizAttemptSerializer
 from courses.models import Course, Enrollment
@@ -13,7 +15,12 @@ class QuizViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Quiz.objects.filter(course__instructor=self.request.user)
+        user = self.request.user
+        # Instructors see their quizzes; enrolled students see active quizzes
+        return Quiz.objects.filter(
+            Q(course__instructor=user) |
+            Q(course__enrollments__user=user, is_active=True)
+        ).distinct().select_related('course')
 
     def perform_create(self, serializer):
         course_id = self.request.data.get('course_id')
@@ -73,7 +80,7 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return QuizAttempt.objects.filter(user=self.request.user)
+        return QuizAttempt.objects.filter(user=self.request.user).select_related('quiz__course', 'user')
 
     @action(detail=True, methods=['post'])
     def submit_answer(self, request, pk=None):
@@ -141,6 +148,7 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
         # Update attempt
         attempt.completed = True
         attempt.score = score_percentage
+        attempt.completed_at = timezone.now()
         attempt.save()
 
         return Response({

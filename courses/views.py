@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Q, Count, Avg, Case, When, IntegerField, Value
+from django.db.models import Q, Count, Avg, Case, When, IntegerField, Value, Exists, OuterRef, Prefetch
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from rest_framework import viewsets, status, filters
@@ -32,17 +32,19 @@ class IsEnrolled(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-            
+
         # Protect List APIs (like /sections/ and /lectures/) by checking course_pk in URL
         course_pk = view.kwargs.get('course_pk')
         if course_pk:
-            try:
-                course = Course.objects.get(pk=course_pk)
-                if course.instructor != request.user and not Enrollment.objects.filter(user=request.user, course=course).exists():
-                    return False
-            except Course.DoesNotExist:
+            # Single query: annotate enrollment status instead of 2 separate queries
+            course = Course.objects.filter(pk=course_pk).annotate(
+                is_enrolled=Exists(Enrollment.objects.filter(user=request.user, course=OuterRef('pk')))
+            ).only('instructor_id').first()
+            if not course:
                 return False
-                
+            if course.instructor_id != request.user.id and not course.is_enrolled:
+                return False
+
         return True
 
     def has_object_permission(self, request, view, obj):
@@ -200,7 +202,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def reviews(self, request, pk=None):
         course = self.get_object()
-        reviews = course.reviews.all().order_by('-created_at')
+        reviews = course.reviews.select_related('student').order_by('-created_at')
         page = self.paginate_queryset(reviews)
         if page is not None:
             serializer = ReviewSerializer(page, many=True)
@@ -373,6 +375,8 @@ class SectionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Section.objects.filter(
             course_id=self.kwargs['course_pk']
+        ).prefetch_related(
+            Prefetch('lectures', queryset=Lecture.objects.prefetch_related('resources').order_by('order'))
         ).order_by('order')
 
     def perform_create(self, serializer):
@@ -399,7 +403,7 @@ class LectureViewSet(viewsets.ModelViewSet):
         return Lecture.objects.filter(
             section_id=self.kwargs['section_pk'],
             section__course_id=self.kwargs['course_pk']
-        ).order_by('order')
+        ).select_related('section__course').prefetch_related('resources').order_by('order')
 
     def perform_create(self, serializer):
         section = get_object_or_404(Section, pk=self.kwargs['section_pk'])
@@ -472,49 +476,67 @@ class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Enrollment.objects.filter(user=self.request.user).select_related(
             'course', 'course__instructor', 'course__category'
-        ).prefetch_related('progress')
+        ).prefetch_related('progress__lecture')
 
     @action(detail=False, methods=['get'])
     def continue_learning(self, request):
         """Fetch in-progress courses with detailed progress for resume functionality."""
-        enrollments = self.get_queryset().filter(completed=False).order_by('-last_accessed')
+        enrollments = Enrollment.objects.filter(
+            user=request.user, completed=False
+        ).select_related(
+            'course', 'course__instructor', 'course__category'
+        ).prefetch_related(
+            Prefetch('course__sections', queryset=Section.objects.order_by('order').prefetch_related(
+                Prefetch('lectures', queryset=Lecture.objects.order_by('order'))
+            )),
+            Prefetch('progress', queryset=Progress.objects.select_related('lecture'))
+        ).order_by('-last_accessed')
 
         response_data = []
         for enrollment in enrollments:
-            last_progress = enrollment.progress.filter(completed=False).order_by('-updated_at').first()
+            # Build completed lecture set from prefetched data (no extra queries)
+            progress_list = list(enrollment.progress.all())
+            completed_ids = {p.lecture_id for p in progress_list if p.completed}
 
+            # Find last incomplete progress
+            last_progress = None
+            for p in sorted(progress_list, key=lambda x: x.updated_at, reverse=True):
+                if not p.completed:
+                    last_progress = p
+                    break
+
+            # Find next lecture from prefetched sections/lectures
             next_lecture = None
-            for section in enrollment.course.sections.all().order_by('order'):
-                for lecture in section.lectures.all().order_by('order'):
-                    prog_exists = any(p.lecture_id == lecture.id and p.completed for p in enrollment.progress.all())
-                    if not prog_exists:
+            for section in enrollment.course.sections.all():
+                for lecture in section.lectures.all():
+                    if lecture.id not in completed_ids:
                         next_lecture = lecture
                         break
                 if next_lecture:
                     break
 
+            total_completed = len(completed_ids)
+            total_lectures_count = sum(
+                len(list(section.lectures.all())) for section in enrollment.course.sections.all()
+            )
+
             enrollment_data = EnrollmentSerializer(enrollment, context={'request': request}).data
-
-            total_completed = enrollment.progress.filter(completed=True).count()
-            total_lectures_count = sum(section.lectures.count() for section in enrollment.course.sections.all())
-
             enrollment_data['continue_learning'] = {
                 'next_lecture': {
-                    'id': next_lecture.id if next_lecture else None,
-                    'title': next_lecture.title if next_lecture else None,
-                    'duration': next_lecture.duration if next_lecture else None,
-                    'duration_display': f"{next_lecture.duration//60}:{next_lecture.duration%60:02d}" if next_lecture else None,
+                    'id': next_lecture.id,
+                    'title': next_lecture.title,
+                    'duration': next_lecture.duration,
+                    'duration_display': f"{next_lecture.duration//60}:{next_lecture.duration%60:02d}",
                 } if next_lecture else None,
                 'last_watched_lecture': {
-                    'id': last_progress.lecture.id if last_progress else None,
-                    'title': last_progress.lecture.title if last_progress else None,
-                    'last_position': last_progress.last_position if last_progress else None,
-                    'completed': last_progress.completed if last_progress else False,
+                    'id': last_progress.lecture_id,
+                    'title': last_progress.lecture.title,
+                    'last_position': last_progress.last_position,
+                    'completed': last_progress.completed,
                 } if last_progress else None,
                 'total_completed_lectures': total_completed,
                 'total_lectures': total_lectures_count,
             }
-
             response_data.append(enrollment_data)
 
         return Response({
@@ -529,7 +551,9 @@ class ProgressViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Progress.objects.filter(enrollment__user=self.request.user)
+        return Progress.objects.filter(
+            enrollment__user=self.request.user
+        ).select_related('lecture', 'enrollment')
 
     @action(detail=False, methods=['get'])
     def course_progress(self, request):

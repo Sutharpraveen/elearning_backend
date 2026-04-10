@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db.models import Avg, Count
 from .models import Category
 from courses.models import Course
 
@@ -19,16 +20,21 @@ class CourseInCategorySerializer(serializers.ModelSerializer):
         ]
 
     def get_total_lectures(self, obj):
-        return sum(section.lectures.count() for section in obj.sections.all())
+        # Use annotation if available (set by view), else single aggregate query
+        annotated = getattr(obj, 'annotated_total_lectures', None)
+        if annotated is not None:
+            return annotated
+        return obj.sections.aggregate(total=Count('lectures'))['total'] or 0
 
     def get_total_students(self, obj):
-        return obj.enrollments.count()
+        return getattr(obj, 'annotated_students_count', obj.enrollments.count())
 
     def get_rating(self, obj):
-        reviews = obj.reviews.all()
-        if reviews:
-            return round(sum(review.rating for review in reviews) / reviews.count(), 2)
-        return 0.0
+        avg = getattr(obj, 'avg_rating', None)
+        if avg is not None:
+            return round(float(avg), 2)
+        result = obj.reviews.aggregate(avg=Avg('rating'))['avg']
+        return round(float(result), 2) if result else 0.0
 
 
 class SimpleCategorySerializer(serializers.ModelSerializer):

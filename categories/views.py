@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Avg, Prefetch
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -12,6 +12,7 @@ from .serializers import (
     CategoryDetailSerializer,
     CourseInCategorySerializer
 )
+from courses.models import Course
 
 
 class IsAdminOrAuthenticatedReadOnly(BasePermission):
@@ -49,6 +50,15 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
+        # Prefetch courses with annotations to avoid N+1 queries
+        courses_qs = Course.objects.select_related('instructor').annotate(
+            avg_rating=Avg('reviews__rating'),
+            annotated_total_lectures=Count('sections__lectures', distinct=True),
+            annotated_students_count=Count('enrollments', distinct=True),
+        )
+        instance = Category.objects.prefetch_related(
+            Prefetch('courses', queryset=courses_qs)
+        ).get(pk=instance.pk)
         serializer = CategoryDetailSerializer(instance, context={'request': request})
         return Response({
             'status': 'success',

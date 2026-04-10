@@ -77,19 +77,28 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
         # Add basic stats for instructors
         if instance.role == 'instructor':
-            from courses.models import Course, Enrollment
+            from courses.models import Course
+            from django.db.models import Count
+            stats = Course.objects.filter(instructor=instance).aggregate(
+                total_courses=Count('id'),
+                total_students=Count('enrollments', distinct=True)
+            )
             data['instructor_stats'] = {
-                'total_courses': Course.objects.filter(instructor=instance).count(),
-                'total_students': Enrollment.objects.filter(course__instructor=instance).count()
+                'total_courses': stats['total_courses'] or 0,
+                'total_students': stats['total_students'] or 0,
             }
         else:
             # Add basic stats for students
             from courses.models import Enrollment
             from payments.models import Payment
-            enrollments = Enrollment.objects.filter(user=instance)
+            from django.db.models import Count, Q
+            stats = Enrollment.objects.filter(user=instance).aggregate(
+                total_enrollments=Count('id'),
+                completed_courses=Count('id', filter=Q(completed=True))
+            )
             data['student_stats'] = {
-                'total_enrollments': enrollments.count(),
-                'completed_courses': enrollments.filter(completed=True).count(),
+                'total_enrollments': stats['total_enrollments'] or 0,
+                'completed_courses': stats['completed_courses'] or 0,
                 'total_payments': Payment.objects.filter(user=instance, status='completed').count()
             }
 
